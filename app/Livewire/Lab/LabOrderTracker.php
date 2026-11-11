@@ -80,7 +80,7 @@ class LabOrderTracker extends Component
             } elseif ($this->newStatus === 'DIPESAN') {
                 $opticalOrder->update(['status' => 'DIPROSES']);
             } elseif ($this->newStatus === 'SALAH') {
-                $opticalOrder->update(['status' => 'PESANAN']);
+                $opticalOrder->update(['status' => 'BATAL']);
             } else {
                 $opticalOrder->update(['status' => 'DRAFT']);
             }
@@ -122,8 +122,10 @@ class LabOrderTracker extends Component
         }
 
         if ($this->search) {
-            $query->whereHas('order', fn ($q) => $q->where('order_number', 'like', '%'.$this->search.'%'))
-                ->orWhere('lab_supplier_name', 'like', '%'.$this->search.'%');
+            $query->where(function ($q) {
+                $q->whereHas('order', fn ($q) => $q->where('order_number', 'like', '%'.$this->search.'%'))
+                    ->orWhere('lab_supplier_name', 'like', '%'.$this->search.'%');
+            });
         }
 
         return view('livewire.lab.lab-order-tracker', [

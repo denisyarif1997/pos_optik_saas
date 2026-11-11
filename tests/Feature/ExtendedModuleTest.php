@@ -2,11 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Livewire\Sales\History;
 use App\Models\Customer;
 use App\Models\Expense;
 use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\ReturnModel;
+use App\Models\Sale;
 use App\Models\Store;
 use App\Models\Supplier;
 use App\Models\User;
@@ -15,6 +17,7 @@ use App\Services\PurchaseService;
 use App\Services\ReturnService;
 use App\Services\SaleService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 class ExtendedModuleTest extends TestCase
@@ -80,5 +83,47 @@ class ExtendedModuleTest extends TestCase
         $this->assertNull(ReturnModel::forActiveStore()->where('id', $retur->id)->first());
         $this->assertNull(Warranty::forActiveStore()->where('id', $warranty->id)->first());
         $this->assertNull(Expense::forActiveStore()->where('id', $expense->id)->first());
+    }
+
+    public function test_sales_history_defaults_to_last_one_month_filter(): void
+    {
+        $this->travelTo('2026-06-15 10:00:00');
+
+        [$userA, $storeA] = $this->makeStoreWithOwner('Toko A', 'sa-filter@toko.test');
+        $this->actingAs($userA);
+
+        Sale::create([
+            'store_id' => $storeA->id,
+            'cashier_id' => $userA->id,
+            'code' => 'INV-RECENT',
+            'sold_at' => '2026-06-01 12:00:00',
+            'subtotal' => 100000,
+            'discount_total' => 0,
+            'total' => 100000,
+            'paid_total' => 100000,
+            'payment_status' => 'lunas',
+            'status' => 'selesai',
+        ]);
+
+        Sale::create([
+            'store_id' => $storeA->id,
+            'cashier_id' => $userA->id,
+            'code' => 'INV-OLD',
+            'sold_at' => '2026-04-10 12:00:00',
+            'subtotal' => 100000,
+            'discount_total' => 0,
+            'total' => 100000,
+            'paid_total' => 100000,
+            'payment_status' => 'lunas',
+            'status' => 'selesai',
+        ]);
+
+        Livewire::test(History::class)
+            ->assertSet('from', '2026-05-15')
+            ->assertSet('to', '2026-06-15')
+            ->assertSee('INV-RECENT')
+            ->assertDontSee('INV-OLD')
+            ->set('from', '2026-04-01')
+            ->assertSee('INV-OLD');
     }
 }

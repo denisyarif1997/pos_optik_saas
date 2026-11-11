@@ -58,6 +58,26 @@ class Cashier extends Component
         ];
     }
 
+    // Fungsi baru untuk tombol + di keranjang
+    public function incrementQty(int $index): void
+    {
+        if (isset($this->cart[$index])) {
+            $this->cart[$index]['qty']++;
+        }
+    }
+
+    // Fungsi baru untuk tombol - di keranjang
+    public function decrementQty(int $index): void
+    {
+        if (isset($this->cart[$index])) {
+            if ($this->cart[$index]['qty'] > 1) {
+                $this->cart[$index]['qty']--;
+            } else {
+                $this->removeRow($index);
+            }
+        }
+    }
+
     public function removeRow(int $index): void
     {
         unset($this->cart[$index]);
@@ -82,8 +102,7 @@ class Cashier extends Component
                 $product = Product::forStore($storeId)->find($row['product_id']);
                 if (! $product) {
                     continue;
-                }
-                $subtotal += ((float) $product->sell_price) * (int) $row['qty'];
+                }$subtotal += ((float) $product->sell_price) * (int) $row['qty'];
                 $discount += (float) ($row['discount'] ?? 0);
             }
         }
@@ -107,8 +126,9 @@ class Cashier extends Component
             return;
         }
 
+        $customer = null;
         if ($this->customer_id) {
-            Customer::forStore($storeId)->findOrFail($this->customer_id);
+            $customer = Customer::forStore($storeId)->findOrFail($this->customer_id);
         }
 
         if ($this->mode === 'sale') {
@@ -128,11 +148,15 @@ class Cashier extends Component
 
         $this->authorize('create', OpticalOrder::class);
 
-        if ($this->prescription_id) {
+        if ($this->prescription_id && $customer) {
             Prescription::forStore($storeId)->where('customer_id', $customer->id)->findOrFail($this->prescription_id);
         }
 
-        $code = 'OPT-'.now()->format('Ymd').'-'.str_pad((string) (OpticalOrder::forStore($storeId)->whereDate('created_at', today())->count() + 1), 4, '0', STR_PAD_LEFT);
+        $nextNumber = (int) OpticalOrder::forStore($storeId)
+            ->whereDate('created_at', today())
+            ->orderBy('id', 'desc')
+            ->value('id');
+        $code = 'OPT-'.now()->format('Ymd').'-'.str_pad((string) ($nextNumber > 0 ? $nextNumber % 10000 : 0), 4, '0', STR_PAD_LEFT);
 
         DB::transaction(function () use ($storeId, $customer, $code) {
             $snapshot = $this->prescription_id
@@ -141,7 +165,7 @@ class Cashier extends Component
 
             $order = OpticalOrder::create([
                 'store_id' => $storeId,
-                'customer_id' => $customer->id,
+                'customer_id' => $customer ? $customer->id : null,
                 'prescription_id' => $this->prescription_id,
                 'order_number' => $code,
                 'code' => $code,
@@ -150,7 +174,7 @@ class Cashier extends Component
                 'ordered_at' => now()->toDateString(),
                 'promised_date' => $this->promised_date ?: null,
                 'total' => (float) $this->totals['total'],
-                'dp_total' => 0,
+                'dp_total' => (float) $this->pay_amount,
                 'status' => 'DRAFT',
             ]);
 
@@ -171,10 +195,15 @@ class Cashier extends Component
                     'subtotal' => ((float) $product->sell_price) * (int) $row['qty'],
                 ]);
 
-                if ($product->type === 'STOCK_LENS' && $this->prescription_id) {
-                    $this->deductStockLensMatrix($product->id, $snapshot);
-                } elseif ($product->type === 'STOCK_LENS') {
-                    $product->decrement('stock', (int) $row['qty']);
+                $qty = (int) $row['qty'];
+                if ($product->type === 'STOCK_LENS') {
+                    if ($this->prescription_id) {
+                        $this->deductStockLensMatrix($product->id, $snapshot);
+                    } else {
+                        $product->decrement('stock', $qty);
+                    }
+                } elseif ($product->type === 'FRAME') {
+                    $product->decrement('stock', $qty);
                 }
             }
 
@@ -213,12 +242,11 @@ class Cashier extends Component
                 ->where('cyl', (float) $cyl)
                 ->where('add_val', (float) ($snapshot[$eye.'_add'] ?? 0.00))
                 ->where('stock_qty', '>', 0)
+                ->lockForUpdate()
                 ->first();
 
             if ($matrix) {
                 $matrix->decrement('stock_qty', 1);
-
-                return;
             }
         }
     }
@@ -231,10 +259,15 @@ class Cashier extends Component
         $this->authorize('create', Sale::class);
         $this->authorize('create', OpticalOrder::class);
 
-        $results = $this->search
+        $search = trim($this->search);
+
+        $results = $search !== ''
             ? Product::forStore($storeId)->where('is_active', true)
-                ->where(fn ($q) => $q->where('name', 'like', '%'.$this->search.'%')->orWhere('barcode', $this->search)->orWhere('sku', $this->search))
-                ->limit(8)->get()
+                ->where(fn ($q) => $q
+                    ->where('name', 'like', '%'.$search.'%')
+                    ->orWhere('barcode', 'like', '%'.$search.'%')
+                    ->orWhere('sku', 'like', '%'.$search.'%'))
+                ->limit(12)->get()
             : collect();
 
         $cartDetailed = [];

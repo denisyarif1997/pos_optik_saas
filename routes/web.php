@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\PrintController;
+use App\Http\Controllers\PublicTrackingController;
 use App\Livewire\Auth\Login;
 use App\Livewire\Auth\Register;
 use App\Livewire\Billing\Index as BillingIndex;
@@ -14,6 +15,7 @@ use App\Livewire\Dashboard\Index as DashboardIndex;
 use App\Livewire\Expenses\Index as ExpenseIndex;
 use App\Livewire\Inventory\Index as InventoryIndex;
 use App\Livewire\Inventory\LensGrid;
+use App\Livewire\Inventory\StockHistory;
 use App\Livewire\Lab\LabOrderTracker;
 use App\Livewire\Lab\QcChecklist;
 use App\Livewire\OpticalOrders\Form as OpticalOrderForm;
@@ -37,11 +39,18 @@ use App\Livewire\StockOpnames\Index;
 use App\Livewire\Stores\Create as StoreCreate;
 use App\Livewire\Suppliers\Index as SupplierIndex;
 use App\Livewire\Warranties\Index as WarrantyIndex;
+use App\Models\User;
+use Illuminate\Auth\Events\Verified;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 Route::get('/', function () {
     return auth()->check() ? redirect()->route('dashboard') : redirect()->route('login');
 });
+
+// Public order tracking (dapat diakses via link WhatsApp pelanggan)
+Route::get('/track', [PublicTrackingController::class, 'form'])->name('track.form');
+Route::get('/track/{code}', [PublicTrackingController::class, 'show'])->name('track.show');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', Login::class)->name('login');
@@ -49,6 +58,34 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
+    // Verifikasi email
+    Route::get('/email/verify', function () {
+        return view('livewire.auth.verify-notice');
+    })->middleware('throttle:6,1')->name('verification.notice');
+
+    Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) {
+        $user = User::findOrFail($id);
+
+        if (! hash_equals((string) $hash, sha1($user->getEmailForVerification()))) {
+            abort(403);
+        }
+
+        if (! $user->hasVerifiedEmail()) {
+            $user->markEmailAsVerified();
+            event(new Verified($user));
+        }
+
+        return redirect()->route('dashboard')->with('verified', true);
+    })->middleware(['signed', 'throttle:6,1'])->name('verification.verify');
+
+    Route::post('/email/resend', function (Request $request) {
+        $request->user()->sendEmailVerificationNotification();
+
+        return back()->with('status', 'Tautan verifikasi telah dikirimkan ke email Anda.');
+    })->middleware('throttle:6,1')->name('verification.resend');
+});
+
+Route::middleware(['auth', 'verified'])->group(function () {
     // Profil tokomu sendiri (1 user = 1 toko). Tidak ada ganti/pindah toko,
     // tidak ada admin lintas-toko di aplikasi ini.
     Route::get('/stores/create', StoreCreate::class)->name('stores.create');
@@ -96,7 +133,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/stock-opnames', Index::class)->name('stock-opnames.index')->middleware('store.role:owner,stok');
         Route::get('/stock-opnames/{id}', Count::class)->name('stock-opnames.count')->middleware('store.role:owner,stok');
         Route::get('/inventory', InventoryIndex::class)->name('inventory.index')->middleware('store.role:owner,stok');
-        Route::get('/inventory/lens-grid/{productId}', LensGrid::class)->name('inventory.lens-grid')->middleware('store.role:owner,stok');
+        Route::get('/inventory/lens-grid/{id}', LensGrid::class)->name('inventory.lens-grid')->middleware('store.role:owner,stok');
+        Route::get('/inventory/stock-history', StockHistory::class)->name('inventory.stock-history')->middleware('store.role:owner,stok');
 
         Route::get('/pos/cashier', Cashier::class)->name('pos.cashier')->middleware('store.role:owner,kasir');
         Route::get('/lab/tracker', LabOrderTracker::class)->name('lab.tracker')->middleware('store.role:owner,optician');

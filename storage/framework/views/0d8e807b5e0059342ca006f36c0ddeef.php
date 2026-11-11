@@ -11,11 +11,11 @@
 <?php $component->withAttributes(['title' => 'Produk & Stok','description' => ''.e($lowCount).' produk stok menipis • hanya data toko Anda']); ?>
 <?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
 
-        <div class="flex items-center gap-2">
-            <a href="<?php echo e(route('products.create')); ?>" wire:navigate class="btn-primary px-4 py-2 text-sm">+ Tambah Produk</a>
-            <a href="<?php echo e(route('export.stock')); ?>" class="btn-ghost px-4 py-2 text-sm text-xs">⬇ Ekspor CSV</a>
-        </div>
-     <?php echo $__env->renderComponent(); ?>
+     <?php $__env->slot('actions', null, []); ?> 
+        <a href="<?php echo e(route('products.create')); ?>" wire:navigate class="btn-primary px-4 py-2 text-sm">+ Tambah Produk</a>
+        <a href="<?php echo e(route('export.stock')); ?>" class="btn-ghost px-4 py-2 text-sm text-xs">⬇ Ekspor CSV</a>
+     <?php $__env->endSlot(); ?>
+ <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginalf8d4ea307ab1e58d4e472a43c8548d8e)): ?>
 <?php $attributes = $__attributesOriginalf8d4ea307ab1e58d4e472a43c8548d8e; ?>

@@ -1,74 +1,141 @@
-<div class="grid xl:grid-cols-5 gap-4">
-    <div class="xl:col-span-3 space-y-4">
-        <div class="bg-white rounded-xl border border-slate-200 p-4">
-            <h2 class="font-semibold text-slate-700 mb-3">Daftar Lab Order untuk QC</h2>
-            <input type="text" wire:model.live="search" placeholder="Cari nomor pesanan atau nama lab..." class="w-full rounded-lg bg-slate-50 border border-slate-200 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-emerald-300 mb-2">
-            <div class="flex gap-2">
-                <button wire:click="statusFilter = 'all'" class="flex-1 px-3 py-2 rounded-lg text-sm font-medium border {{ $statusFilter === 'all' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50' }}">Semua</button>
-                <button wire:click="statusFilter = 'diterima'" class="flex-1 px-3 py-2 rounded-lg text-sm font-medium border {{ $statusFilter === 'diterima' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50' }}">Diterima Lab</button>
+<div class="space-y-6">
+    <x-page-header title="Pemeriksaan Kualitas (QC Checklist) Lab"
+                   description="Pemeriksaan fisik kacamata setelah selesai diproses laboratorium sebelum diserahkan ke pelanggan" />
+
+    <div class="grid xl:grid-cols-12 gap-6 items-start">
+        <!-- Kolom Kiri: Daftar Lab Order -->
+        <div class="xl:col-span-7 space-y-4">
+            <div class="card p-5 bg-surface border border-line shadow-card rounded-2xl space-y-3">
+                <div class="flex items-center justify-between">
+                    <h2 class="font-semibold text-sm text-text-main">Pilih Pesanan Lab</h2>
+                    <span class="text-xs text-text-secondary">Siap / Diterima dari Lab</span>
+                </div>
+
+                <input type="text"
+                       wire:model.live.debounce.300ms="search"
+                       placeholder="Cari nomor pesanan atau nama lab..."
+                       class="input">
+
+                <div class="flex gap-2 pt-1">
+                    <button wire:click="$set('statusFilter', 'all')"
+                            class="flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold border transition {{ $statusFilter === 'all' ? 'bg-emerald text-white border-emerald shadow-xs' : 'bg-surface text-text-secondary border-line hover:bg-canvas' }}">
+                        Semua Order
+                    </button>
+                    <button wire:click="$set('statusFilter', 'diterima')"
+                            class="flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold border transition {{ $statusFilter === 'diterima' ? 'bg-emerald text-white border-emerald shadow-xs' : 'bg-surface text-text-secondary border-line hover:bg-canvas' }}">
+                        Diterima dari Lab
+                    </button>
+                </div>
+            </div>
+
+            <div class="card p-5 bg-surface border border-line shadow-card rounded-2xl space-y-3">
+                <div class="flex items-center justify-between pb-2 border-b border-line">
+                    <h3 class="font-semibold text-xs text-text-secondary uppercase tracking-wider">Antrean Pemeriksaan QC</h3>
+                    <span class="text-[11px] text-emerald font-semibold">{{ $labOrders->total() }} pesanan</span>
+                </div>
+
+                <div class="space-y-2">
+                    @forelse ($labOrders as $lo)
+                        <div wire:click="selectOrder({{ $lo->id }})"
+                             class="flex items-center justify-between gap-3 p-3.5 rounded-xl border transition cursor-pointer {{ $labOrderId === $lo->id ? 'border-emerald bg-emerald-bg/40 shadow-xs' : 'border-line bg-surface hover:bg-canvas' }}">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-bold text-sm text-text-main">{{ $lo->order->order_number ?? $lo->order->code ?? '-' }}</span>
+                                    <span class="status-badge info">{{ ucfirst(strtolower($lo->status)) }}</span>
+                                </div>
+                                <div class="text-xs text-text-secondary truncate mt-1">
+                                    {{ optional($lo->order->customer)->name ?? 'Pelanggan Umum' }} &middot;
+                                    <span class="font-medium text-text-main">{{ $lo->lab_supplier_name }}</span>
+                                </div>
+                            </div>
+                            <div class="text-right text-xs">
+                                <div class="text-text-secondary">{{ $lo->expected_completion_date ? \Carbon\Carbon::parse($lo->expected_completion_date)->format('d M Y') : '-' }}</div>
+                                <div class="font-semibold text-text-main mt-0.5">Rp {{ number_format($lo->lab_cost, 0, ',', '.') }}</div>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="py-10 text-center text-text-secondary text-sm">
+                            <x-icon name="check" class="w-8 h-8 mx-auto text-emerald mb-2" />
+                            Belum ada lab order yang perlu di-QC saat ini.
+                        </div>
+                    @endforelse
+                </div>
+
+                <div class="pt-2">
+                    {{ $labOrders->links() }}
+                </div>
             </div>
         </div>
 
-        <div class="bg-white rounded-xl border border-slate-200 p-4 space-y-2">
-            <h2 class="font-semibold text-slate-700 mb-3">Lab Order (Diterima)</h2>
-            @forelse ($labOrders as $lo)
-                <div class="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2.5 hover:bg-slate-50 cursor-pointer group" wire:click="selectOrder({{ $lo->id }})">
-                    <div class="flex-1 min-w-0">
-                        <div class="text-sm font-bold truncate">{{ $lo->order->order_number }}</div>
-                        <div class="text-xs text-slate-500">{{ optional($lo->order->customer)->name ?? 'Umum' }} • {{ $lo->lab_supplier_name }}</div>
-                        <span class="inline-block mt-1 px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 text-slate-700">{{ ucfirst(strtolower($lo->status)) }}</span>
+        <!-- Kolom Kanan: Form QC Checklist -->
+        <div class="xl:col-span-5 card p-6 bg-surface border border-line shadow-card rounded-2xl sticky top-20 space-y-5">
+            @if ($labOrderId && $selectedOrder)
+                <div class="flex items-center gap-3 pb-3 border-b border-line">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-bg text-emerald flex items-center justify-center border border-emerald-soft flex-shrink-0">
+                        <x-icon name="flask" class="w-5 h-5" />
                     </div>
-                    <div class="text-right text-xs">
-                        <div class="text-slate-500">{{ $lo->expected_completion_date ? \Carbon\Carbon::parse($lo->expected_completion_date)->format('d M Y') : '-' }}</div>
-                        <div class="text-slate-400">Rp {{ number_format($lo->lab_cost, 0, ',', '.') }}</div>
+                    <div class="min-w-0 flex-1">
+                        <h2 class="font-bold text-sm text-text-main truncate">QC Pesanan {{ $selectedOrder->order->order_number ?? $selectedOrder->order->code }}</h2>
+                        <p class="text-xs text-text-secondary truncate mt-0.5">Lab: {{ $selectedOrder->lab_supplier_name }}</p>
                     </div>
                 </div>
-            @empty
-                <p class="text-sm text-slate-400 text-center py-6">Belum ada lab order yang diterima untuk QC.</p>
-            @endforelse
-            {{ $labOrders->links() }}
-        </div>
-    </div>
-    <div class="xl:col-span-2">
-        <div class="bg-white rounded-xl border border-slate-200 p-5 space-y-4 xl:sticky xl:top-24">
-            @if ($labOrderId)
+
+                <!-- Checklist Items -->
+                <div class="space-y-2">
+                    <label class="label">Poin Pemeriksaan Fisik:</label>
+                    @foreach ($qcItems as $key => $label)
+                        <label class="flex items-center gap-3 p-2.5 rounded-xl border border-line bg-canvas hover:border-emerald-soft transition cursor-pointer">
+                            <input type="checkbox"
+                                   wire:model="qcItems.{{ $key }}"
+                                   class="w-4 h-4 rounded text-emerald accent-emerald cursor-pointer">
+                            <span class="text-xs font-medium text-text-main">{{ $label }}</span>
+                        </label>
+                    @endforeach
+                </div>
+
+                <!-- Hasil QC Radio -->
                 <div>
-                    <h2 class="font-semibold text-slate-700 mb-3">QC Checklist</h2>
-                    <p class="text-sm text-slate-500 mb-3">Pesanan: <span class="font-bold">{{ $selectedOrder->order->order_number }}</span></p>
-                    <p class="text-sm text-slate-500 mb-4">Lab: {{ $selectedOrder->lab_supplier_name }} • {{ \Carbon\Carbon::parse($selectedOrder->expected_completion_date)->format('d M Y') }}</p>
-
-                    <div class="space-y-2">
-                        @foreach ($qcItems as $key => $label)
-                            <div class="flex items-center gap-2 p-2 rounded-lg border border-slate-200 {{ ($qcItems[$key] ?? true) ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200' }}">
-                                <input type="checkbox" wire:model="qcItems.{{ $key }}" class="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500">
-                                <label class="text-sm text-slate-700 cursor-pointer">{{ $label }}</label>
-                            </div>
-                        @endforeach
+                    <label class="label">Keputusan Hasil Pemeriksaan <span class="text-error">*</span></label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <label class="flex items-center justify-center gap-2 p-2.5 rounded-xl border cursor-pointer transition {{ $qcResult === 'pass' ? 'border-emerald bg-emerald-bg text-emerald-dark font-bold shadow-xs' : 'border-line bg-surface text-text-secondary hover:bg-canvas' }}">
+                            <input type="radio" wire:model="qcResult" value="pass" class="accent-emerald">
+                            <span class="text-xs">Lulus QC (Siap Diambil)</span>
+                        </label>
+                        <label class="flex items-center justify-center gap-2 p-2.5 rounded-xl border cursor-pointer transition {{ $qcResult === 'fail' ? 'border-red-500 bg-red-50 text-red-700 font-bold shadow-xs' : 'border-line bg-surface text-text-secondary hover:bg-canvas' }}">
+                            <input type="radio" wire:model="qcResult" value="fail" class="accent-red-600">
+                            <span class="text-xs">Gagal QC (Retur ke Lab)</span>
+                        </label>
                     </div>
+                </div>
 
-                    <div class="mt-4">
-                        <label class="text-sm font-semibold block mb-1.5">Hasil QC</label>
-                        <div class="flex gap-3">
-                            <label class="flex-1 flex items-center gap-2 cursor-pointer border rounded-lg p-2 {{ $qcResult === 'pass' ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 bg-white' }}">
-                                <input type="radio" wire:model="qcResult" value="pass" class="w-4 h-4 text-emerald-600"> <span class="text-sm font-medium text-slate-700">Lulus QC</span>
-                            </label>
-                            <label class="flex-1 flex items-center gap-2 cursor-pointer border rounded-lg p-2 {{ $qcResult === 'fail' ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-white' }}">
-                                <input type="radio" wire:model="qcResult" value="fail" class="w-4 h-4 text-red-600"> <span class="text-sm font-medium text-slate-700">Gagal QC</span>
-                            </label>
-                        </div>
-                    </div>
+                <!-- Catatan QC -->
+                <div>
+                    <label class="label">Catatan Pemeriksa / Keterangan</label>
+                    <textarea wire:model="qcNotes"
+                              rows="3"
+                              placeholder="Contoh: Titik fokus pas, bevel rapi, lensa bening tanpa goresan..."
+                              class="input"></textarea>
+                </div>
 
-                    <div class="mt-3">
-                        <label class="text-sm font-semibold block mb-1.5">Catatan QC</label>
-                        <textarea wire:model="qcNotes" rows="3" placeholder="Catatan hasil pemeriksaan kualitas..." class="w-full rounded-lg bg-slate-50 border border-slate-200 px-4 py-2.5 text-sm"></textarea>
-                    </div>
-
-                    <button wire:click="submitQc" @disabled($labOrderId === null) class="w-full bg-slate-900 hover:bg-black text-white text-sm font-semibold py-2.5 disabled:opacity-50 disabled:cursor-not-allowed mt-4">Simpan Hasil QC</button>
-                    <button wire:click="cancelQc" class="w-full text-sm text-slate-500 hover:text-slate-700 mt-2">Batal</button>
+                <!-- Action Buttons -->
+                <div class="space-y-2 pt-2 border-t border-line">
+                    <button wire:click="submitQc"
+                            wire:loading.attr="disabled"
+                            class="btn-primary w-full py-2.5 text-sm font-semibold flex items-center justify-center gap-2">
+                        <x-icon name="check" class="w-4 h-4" />
+                        <span wire:loading.remove wire:target="submitQc">Simpan Hasil Pemeriksaan</span>
+                        <span wire:loading wire:target="submitQc">Menyimpan...</span>
+                    </button>
+                    <button wire:click="cancelQc"
+                            class="btn-ghost w-full py-2 text-xs font-medium">
+                        Batal
+                    </button>
                 </div>
             @else
-                <div class="text-center py-10 text-slate-400">
-                    <p class="text-sm">Pilih lab order dari daftar di samping untuk melakukan pemeriksaan QC.</p>
+                <div class="py-16 text-center text-text-secondary space-y-2">
+                    <x-icon name="flask" class="w-10 h-10 mx-auto text-emerald/40" />
+                    <p class="text-sm font-semibold text-text-main">Pilih Pesanan untuk QC</p>
+                    <p class="text-xs max-w-xs mx-auto">Klik salah satu lab order di daftar sebelah kiri untuk memulai pemeriksaan kualitas lensa &amp; frame.</p>
                 </div>
             @endif
         </div>

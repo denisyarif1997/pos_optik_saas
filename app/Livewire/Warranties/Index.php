@@ -21,8 +21,22 @@ class Index extends Component
     #[Validate('nullable|date')]
     public ?string $valid_until = null;
 
-    #[Validate('nullable|string')]
-    public string $claim_notes = '';
+    public function nextCode(int $storeId): string
+    {
+        $nextNumber = $this->getNextNumber($storeId) + 1;
+
+        return 'GRS-'.now()->format('Ymd').'-'.str_pad((string) $nextNumber, 4, '0', STR_PAD_LEFT);
+    }
+
+    private function getNextNumber(int $storeId): int
+    {
+        $id = Warranty::forStore($storeId)
+            ->whereDate('created_at', today())
+            ->orderBy('id', 'desc')
+            ->value('id');
+
+        return $id > 0 ? (int) substr((string) $id, -4) : 0;
+    }
 
     public function save(): void
     {
@@ -39,7 +53,7 @@ class Index extends Component
             'store_id' => $storeId,
             'sale_id' => $this->sale_id,
             'customer_id' => $customer->id,
-            'code' => 'GRS-'.now()->format('Ymd').'-'.str_pad((string) (Warranty::forStore($storeId)->whereDate('created_at', today())->count() + 1), 4, '0', STR_PAD_LEFT),
+            'code' => $this->nextCode($storeId),
             'valid_until' => $this->valid_until ?: now()->addMonths(3)->toDateString(),
             'claim_notes' => $this->claim_notes ?: null,
             'status' => 'active',

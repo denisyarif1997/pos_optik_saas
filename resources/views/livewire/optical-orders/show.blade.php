@@ -1,9 +1,17 @@
-<div class="grid xl:grid-cols-3 gap-4">
+{{--  --}}<div class="grid xl:grid-cols-3 gap-4">
     <div class="xl:col-span-2 bg-white rounded-xl border border-slate-200 p-6 space-y-4">
-        <div>
-            <h1 class="text-xl font-semibold">Pesanan {{ $order->code }}</h1>
-            <p class="text-sm text-slate-500">{{ $order->customer?->name ?? '-' }} • Lab {{ $order->lab_name ?? '-' }}</p>
-        </div>
+      <div class="flex flex-wrap items-start justify-between gap-3">
+    <div>
+        <h1 class="text-xl font-semibold">Pesanan {{ $order->code }}</h1>
+        <p class="text-sm text-slate-500">{{ $order->customer?->name ?? '-' }} • Lab {{ $order->lab_name ?? '-' }}</p>
+    </div>
+
+    <a href="{{ route('optical-orders.index') }}" wire:navigate
+       class="btn-ghost px-4 py-2 text-sm flex items-center gap-1.5 shrink-0">
+        <span>&larr;</span> Kembali
+    </a>
+</div>
+        
         <div class="space-y-2 text-sm">
             @foreach ($order->items as $it)
                 <div class="flex justify-between py-2 border-b border-slate-50 last:border-0"><span>{{ $it->description }} × {{ $it->qty }}</span><b>Rp {{ number_format($it->subtotal, 0, ',', '.') }}</b></div>
@@ -33,16 +41,26 @@
             <h2 class="font-semibold mb-3">Status Pengerjaan</h2>
             <form wire:submit="updateStatus" class="space-y-3">
                 <select wire:model="status" class="w-full rounded-lg bg-slate-50 border border-emerald-100 px-4 py-2.5 text-sm">
-                    <option value="baru">Baru</option>
-                    <option value="diproses">Diproses</option>
-                    <option value="menunggu_lensa">Menunggu lensa</option>
-                    <option value="siap_diambil">Siap diambil</option>
-                    <option value="diambil">Diambil</option>
-                    <option value="selesai">Selesai</option>
-                    <option value="dibatalkan">Dibatalkan</option>
+                    <option value="DRAFT">Baru</option>
+                    <option value="DIPROSES">Diproses</option>
+                    <option value="SIAP">Siap diambil</option>
+                    <option value="COMPLETED">Selesai</option>
+                    <option value="BATAL">Dibatalkan</option>
                 </select>
-                <button class="w-full bg-slate-900 hover:bg-black text-white text-sm font-semibold">Perbarui Status</button>
+                <button
+                    wire:loading.attr="disabled"
+                    class="w-full bg-slate-900 hover:bg-black text-white text-sm font-semibold flex items-center justify-center gap-2"
+                >
+                    <x-icon name="spinner" class="w-4 h-4 spin" wire:loading.remove wire:target="updateStatus"></x-icon>
+                    <span wire:loading.remove wire:target="updateStatus">Perbarui Status</span>
+                    <span wire:loading wire:target="updateStatus">Memproses...</span>
+                </button>
             </form>
+            @if ($this->statusMessage)
+                <div class="mt-3 alert alert-success">
+                    {{ $this->statusMessage }}
+                </div>
+            @endif
         </div>
         @if ($order->receivable > 0)
         <div class="bg-white rounded-xl border border-slate-200 p-5">

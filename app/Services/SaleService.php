@@ -15,9 +15,19 @@ class SaleService
     public function nextCode(int $storeId): string
     {
         $date = now()->format('Ymd');
-        $count = Sale::forStore($storeId)->whereDate('created_at', today())->count() + 1;
+        $nextNumber = $this->getNextNumber($storeId) + 1;
 
-        return 'JUAL-'.$date.'-'.str_pad((string) $count, 4, '0', STR_PAD_LEFT);
+        return 'JUAL-'.$date.'-'.str_pad((string) $nextNumber, 4, '0', STR_PAD_LEFT);
+    }
+
+    private function getNextNumber(int $storeId): int
+    {
+        $id = Sale::forStore($storeId)
+            ->whereDate('created_at', today())
+            ->orderBy('id', 'desc')
+            ->value('id');
+
+        return $id > 0 ? (int) substr((string) $id, -4) : 0;
     }
 
     public function create(User $user, array $input): Sale

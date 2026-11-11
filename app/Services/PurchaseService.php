@@ -37,7 +37,7 @@ class PurchaseService
             $purchase = Purchase::create([
                 'store_id' => $storeId,
                 'supplier_id' => $input['supplier_id'] ?? null,
-                'code' => 'PO-'.now()->format('Ymd').'-'.str_pad((string) (Purchase::forStore($storeId)->whereDate('created_at', today())->count() + 1), 4, '0', STR_PAD_LEFT),
+                'code' => 'PO-'.now()->format('Ymd').'-'.str_pad((string) ($this->getNextNumber($storeId) + 1), 4, '0', STR_PAD_LEFT),
                 'purchased_at' => $input['purchased_at'] ?? now()->toDateString(),
                 'total' => $total,
                 'status' => 'received',
@@ -75,5 +75,15 @@ class PurchaseService
 
             return $purchase->fresh('items');
         });
+    }
+
+    private function getNextNumber(int $storeId): int
+    {
+        $id = Purchase::forStore($storeId)
+            ->whereDate('created_at', today())
+            ->orderBy('id', 'desc')
+            ->value('id');
+
+        return $id > 0 ? (int) substr((string) $id, -4) : 0;
     }
 }

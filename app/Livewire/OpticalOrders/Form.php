@@ -69,7 +69,7 @@ class Form extends Component
         }
 
         DB::transaction(function () use ($storeId) {
-            $code = 'OPT-'.now()->format('Ymd').'-'.str_pad((string) (OpticalOrder::forStore($storeId)->whereDate('created_at', today())->count() + 1), 4, '0', STR_PAD_LEFT);
+            $code = 'OPT-'.now()->format('Ymd').'-'.str_pad((string) ($this->getNextNumber($storeId) + 1), 4, '0', STR_PAD_LEFT);
 
             if ($this->orderId) {
                 $order = OpticalOrder::forStore($storeId)->findOrFail($this->orderId);
@@ -94,7 +94,7 @@ class Form extends Component
                     'estimated_done_at' => $this->estimated_done_at ?: null,
                     'total' => $this->total,
                     'dp_total' => $this->dp_total,
-                    'status' => 'baru',
+                    'status' => 'DRAFT',
                 ]);
 
                 foreach ($this->frameIds as $pid) {

@@ -7,6 +7,9 @@
             </div>
             <span class="ml-auto text-[11px] font-bold px-3 py-1.5 rounded-full {{ $sale->payment_status === 'lunas' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700' }}">{{ $sale->payment_status }}</span>
             <a href="{{ route('print.sale', $sale->id) }}" target="_blank" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-emerald-500 text-white">🖨️ Cetak</a>
+            <a href="{{ route('sales.index') }}" wire:navigate class="btn-ghost px-4 py-2 text-sm flex items-center gap-1.5">
+                <span>&larr;</span> Kembali
+            </a>
         </div>
         <div class="mt-4 space-y-2 text-sm">
             @foreach ($sale->items as $it)

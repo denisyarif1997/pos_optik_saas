@@ -13,8 +13,10 @@ class Show extends Component
 {
     public int $orderId;
 
-    #[Validate('required|string|in:baru,diproses,menunggu_lensa,siap_diambil,selesai,diambil,dibatalkan')]
-    public string $status = 'baru';
+    #[Validate('required|string|in:DRAFT,PESANAN,DIPROSES,SIAP,COMPLETED,BATAL')]
+    public string $status = 'DRAFT';
+
+    public string $statusMessage = '';
 
     public function mount(int $id): void
     {
@@ -25,6 +27,7 @@ class Show extends Component
         $this->authorize('view', $order);
         $this->orderId = $order->id;
         $this->status = $order->status;
+        $this->statusMessage = session('status_message', '');
     }
 
     public string $payAmount = '';
@@ -68,7 +71,7 @@ class Show extends Component
         $this->reset(['payAmount', 'payNotes']);
         $this->payMethod = 'cash';
 
-        session()->flash('success', 'Pembayaran dicatat.');
+        $this->statusMessage = 'Pembayaran dicatat.';
     }
 
     public function updateStatus(): void
@@ -81,12 +84,13 @@ class Show extends Component
         $this->authorize('update', $order);
 
         $data = ['status' => $this->status];
-        if ($this->status === 'diambil' || $this->status === 'selesai') {
+        if ($this->status === 'SIAP' || $this->status === 'COMPLETED') {
             $data['taken_at'] = now()->toDateString();
         }
 
         $order->update($data);
-        session()->flash('success', 'Status pesanan diperbarui.');
+
+        $this->statusMessage = 'Status pesanan diperbarui.';
     }
 
     public function render()

@@ -74,7 +74,7 @@ class Register extends Component
             session()->regenerate();
         });
 
-        $this->redirectRoute('dashboard', navigate: true);
+        $this->redirectRoute('verification.notice', navigate: true);
     }
 
     public function render()

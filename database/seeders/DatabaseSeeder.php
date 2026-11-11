@@ -14,6 +14,12 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        if (app()->environment('production')) {
+            $this->command->warn('Seeder dilewati di environment production.');
+
+            return;
+        }
+
         $this->call([PlanSeeder::class, OptikPosSeeder::class, CategorySeeder::class, SupplierSeeder::class]);
     }
 }

@@ -25,7 +25,7 @@ class Index extends Component
         abort_unless($storeId, 403);
 
         $products = Product::forStore($storeId)
-            ->where('type', 'STOCK_LENS')
+            ->whereIn('type', ['STOCK_LENS', 'RX_LENS', 'CONTACT_LENS'])
             ->where('is_active', true)
             ->when($this->search, fn ($q) => $q->where('name', 'like', '%'.$this->search.'%')->orWhere('sku', 'like', '%'.$this->search.'%'))
             ->latest()

@@ -16,7 +16,7 @@ class Form extends Component
     #[Validate('required|string|max:150')]
     public string $name = '';
 
-    #[Validate('required|string|in:frame,lensa,softlens,cairan,aksesori')]
+    #[Validate('required|string|in:FRAME,STOCK_LENS,RX_LENS,CONTACT_LENS,SERVICE')]
     public string $type = 'frame';
 
     #[Validate('nullable|integer|exists:categories,id')]

@@ -20,7 +20,7 @@ class Index extends Component
         $todaySales = (float) Sale::forStore($storeId)->whereDate('sold_at', today())->sum('total');
         $todayCount = Sale::forStore($storeId)->whereDate('sold_at', today())->count();
         $yesterdaySales = (float) Sale::forStore($storeId)->whereDate('sold_at', today()->subDay())->sum('total');
-        $openOrders = OpticalOrder::forStore($storeId)->whereNotIn('status', ['selesai', 'dibatalkan', 'diambil'])->count();
+        $openOrders = OpticalOrder::forStore($storeId)->whereNotIn('status', ['COMPLETED', 'BATAL'])->count();
         $lowStock = Product::forStore($storeId)->where('is_active', true)->whereColumn('stock', '<=', 'min_stock')->count();
         $readyOrders = OpticalOrder::forStore($storeId)->where('status', 'siap_diambil')->with('customer')->latest()->limit(5)->get();
         $unpaidQuery = Sale::forStore($storeId)->where('payment_status', '!=', 'lunas');

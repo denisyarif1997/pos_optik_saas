@@ -89,7 +89,7 @@ class QcChecklist extends Component
                     'status' => 'SALAH',
                     'rejection_reason' => $this->qcNotes ?: 'Gagal QC: '.$this->qcNotes,
                 ]);
-                $opticalOrder->update(['status' => 'PESANAN']);
+                $opticalOrder->update(['status' => 'BATAL']);
                 session()->flash('warning', 'QC gagal. Lab order ditandai salah dan pesanan dikembalikan ke proses.');
             }
         });
@@ -137,8 +137,10 @@ class QcChecklist extends Component
         }
 
         if ($this->search) {
-            $query->whereHas('order', fn ($q) => $q->where('order_number', 'like', '%'.$this->search.'%'))
-                ->orWhere('lab_supplier_name', 'like', '%'.$this->search.'%');
+            $query->where(function ($q) {
+                $q->whereHas('order', fn ($q) => $q->where('order_number', 'like', '%'.$this->search.'%'))
+                    ->orWhere('lab_supplier_name', 'like', '%'.$this->search.'%');
+            });
         }
 
         return view('livewire.lab.qc-checklist', [
