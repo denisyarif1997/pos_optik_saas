@@ -125,7 +125,7 @@ class Form extends Component
 
         return view('livewire.optical-orders.form', [
             'customers' => Customer::forStore($storeId)->where('is_active', true)->orderBy('name')->limit(200)->get(),
-            'frames' => Product::forStore($storeId)->where('is_active', true)->where('type', 'frame')->orderBy('name')->limit(100)->get(),
+            'frames' => Product::forStore($storeId)->where('is_active', true)->where('type', 'FRAME')->orderBy('name')->limit(100)->get(),
         ])->title($this->orderId ? 'Ubah Pesanan' : 'Pesanan Baru');
     }
 }

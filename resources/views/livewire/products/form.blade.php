@@ -36,11 +36,11 @@
                     <div>
                         <label class="label">Tipe Produk <span class="text-error">*</span></label>
                         <select wire:model="type" class="input @error('type') border-error @enderror">
-                            <option value="frame">Frame (Bingkai Kacamata)</option>
-                            <option value="lensa">Lensa Kacamata</option>
-                            <option value="softlens">Lensa Kontak / Softlens</option>
-                            <option value="cairan">Cairan Pembersih &amp; Solution</option>
-                            <option value="aksesori">Aksesori &amp; Kotak Kacamata</option>
+                            <option value="FRAME">Frame (Bingkai Kacamata)</option>
+                            <option value="STOCK_LENS">Lensa Kacamata</option>
+                            <option value="CONTACT_LENS">Lensa Kontak / Softlens</option>
+                            <option value="RX_LENS">Cairan Pembersih &amp; Solution</option>
+                            <option value="SERVICE">Aksesori &amp; Kotak Kacamata</option>
                         </select>
                         @error('type')
                             <p class="text-[11px] text-error mt-1">{{ $message }}</p>

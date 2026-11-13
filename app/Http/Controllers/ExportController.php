@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\OpticalOrder;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\StockOpname;
@@ -18,15 +19,45 @@ class ExportController extends Controller
         $from = $request->query('from', now()->startOfMonth()->format('Y-m-d'));
         $to = $request->query('to', now()->format('Y-m-d'));
 
-        $rows = Sale::forStore($storeId)->with('customer')
-            ->whereDate('sold_at', '>=', $from)->whereDate('sold_at', '<=', $to)
-            ->orderBy('sold_at')->get();
+        $sales = Sale::forStore($storeId)
+            ->with('customer')
+            ->whereDate('sold_at', '>=', $from)
+            ->whereDate('sold_at', '<=', $to)
+            ->orderBy('sold_at')
+            ->get();
 
-        return response()->streamDownload(function () use ($rows) {
+        $optical = OpticalOrder::forStore($storeId)
+            ->with('customer')
+            ->where('status', 'COMPLETED')
+            ->whereDate('taken_at', '>=', $from)
+            ->whereDate('taken_at', '<=', $to)
+            ->orderBy('taken_at')
+            ->get();
+
+        return response()->streamDownload(function () use ($sales, $optical) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['Kode', 'Waktu', 'Pelanggan', 'Total', 'Dibayar', 'Status']);
-            foreach ($rows as $s) {
-                fputcsv($out, [$s->code, $s->sold_at->format('Y-m-d H:i'), $s->customer?->name ?? 'Umum', $s->total, $s->paid_total, $s->payment_status]);
+            fputcsv($out, ['Tanggal', 'Jenis', 'Kode', 'Pelanggan', 'Total', 'Dibayar', 'Status']);
+            foreach ($sales as $s) {
+                fputcsv($out, [
+                    $s->sold_at->format('Y-m-d H:i'),
+                    'Penjualan',
+                    $s->code,
+                    $s->customer?->name ?? 'Umum',
+                    $s->total,
+                    $s->paid_total,
+                    $s->payment_status,
+                ]);
+            }
+            foreach ($optical as $o) {
+                fputcsv($out, [
+                    $o->taken_at?->format('Y-m-d H:i'),
+                    'Optical',
+                    $o->code,
+                    $o->customer?->name ?? 'Umum',
+                    $o->total,
+                    $o->dp_total,
+                    $o->status,
+                ]);
             }
             fclose($out);
         }, 'penjualan-'.$from.'-'.$to.'.csv', ['Content-Type' => 'text/csv']);
@@ -54,14 +85,20 @@ class ExportController extends Controller
         $storeId = app('activeStore')->id($request->user());
         abort_unless($storeId, 403);
 
-        $rows = StockOpname::forStore($storeId)->with('items.product')->latest()->get();
+        $query = StockOpname::forStore($storeId)->with('items.product')->latest();
+
+        if ($request->filled('opname_id')) {
+            $query->where('id', $request->query('opname_id'));
+        }
+
+        $rows = $query->get();
 
         return response()->streamDownload(function () use ($rows) {
             $out = fopen('php://output', 'w');
             fputcsv($out, ['Kode', 'Tanggal', 'Status', 'SKU', 'Produk', 'Sistem', 'Aktual', 'Selisih']);
             foreach ($rows as $so) {
                 foreach ($so->items as $i) {
-                    fputcsv($out, [$so->code, $so->started_at?->format('Y-m-d H:i'), $so->status, $i->product?->sku, $i->product?->name, $i->qty_system, $i->qty_counted, $i->diff]);
+                    fputcsv($out, [$so->code, $so->conducted_at?->format('Y-m-d H:i'), $so->status, $i->product?->sku, $i->product?->name, $i->system_qty, $i->counted_qty, $i->diff]);
                 }
             }
             fclose($out);

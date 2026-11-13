@@ -17,7 +17,7 @@ class Form extends Component
     public string $name = '';
 
     #[Validate('required|string|in:FRAME,STOCK_LENS,RX_LENS,CONTACT_LENS,SERVICE')]
-    public string $type = 'frame';
+    public string $type = 'FRAME';
 
     #[Validate('nullable|integer|exists:categories,id')]
     public ?int $category_id = null;

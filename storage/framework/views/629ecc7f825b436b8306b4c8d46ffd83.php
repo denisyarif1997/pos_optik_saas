@@ -46,45 +46,63 @@
 <?php unset($__componentOriginal1c4b45f62348de9b6fa41ee823d3fa96); ?>
 <?php endif; ?>
 
-    <div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
-        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__empty_1 = true; $__currentLoopData = $customers; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $c): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoopIteration(); ?><?php endif; ?>
-            <div class="card p-4 hover:border-accent/50 transition">
-                <div class="flex justify-between items-start mb-2">
-                    <div class="font-semibold text-text-main truncate"><?php echo e($c->name); ?></div>
-                    <span class="status-badge info">Aktif</span>
-                </div>
-                <div class="text-[11px] text-text-secondary mb-3"><?php echo e($c->phone ?? '-'); ?></div>
-                <div class="flex items-center gap-2 pt-3 border-t border-line">
-                    <a href="<?php echo e(route('customers.show', $c->id)); ?>" wire:navigate
-                        class="text-accent text-xs font-medium hover:text-accent-hover">Lihat detail &rarr;</a>
-                    <button wire:click="delete(<?php echo e($c->id); ?>)"
-                        class="text-error text-xs font-medium hover:text-error/80">Nonaktifkan</button>
-                </div>
-            </div>
-        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
-            <?php if (isset($component)) { $__componentOriginal074a021b9d42f490272b5eefda63257c = $component; } ?>
-<?php if (isset($attributes)) { $__attributesOriginal074a021b9d42f490272b5eefda63257c = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.empty-state','data' => ['title' => 'Belum ada pelanggan.','description' => 'Mulai menambahkan pelanggan pertama Anda untuk mencatat transaksi dan resep.','actionHref' => ''.e(route('customers.create')).'','actionLabel' => 'Tambah Pelanggan']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
-<?php $component->withName('empty-state'); ?>
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm border-collapse">
+                <thead class="bg-slate-100 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    <tr>
+                        <th class="py-3 px-4 text-left">Nama Pelanggan</th>
+                        <th class="py-3 px-4 text-left w-32">Nomor HP</th>
+                        <th class="py-3 px-4 text-left w-20">Status</th>
+                        <th class="py-3 px-4 text-right w-24">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 bg-white">
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__empty_1 = true; $__currentLoopData = $customers; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $c): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoopIteration(); ?><?php endif; ?>
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="py-3 px-4 font-medium text-text-main"><?php echo e($c->name); ?></td>
+                            <td class="py-3 px-4 text-[11px] text-text-secondary"><?php echo e($c->phone ?? '-'); ?></td>
+                            <td class="py-3 px-4">
+                                <?php if (isset($component)) { $__componentOriginal8c81617a70e11bcf247c4db924ab1b62 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal8c81617a70e11bcf247c4db924ab1b62 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.status-badge','data' => ['status' => 'Aktif','class' => 'info']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('status-badge'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['title' => 'Belum ada pelanggan.','description' => 'Mulai menambahkan pelanggan pertama Anda untuk mencatat transaksi dan resep.','actionHref' => ''.e(route('customers.create')).'','actionLabel' => 'Tambah Pelanggan']); ?>
+<?php $component->withAttributes(['status' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute('Aktif'),'class' => 'info']); ?>
 <?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
 
 <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
-<?php if (isset($__attributesOriginal074a021b9d42f490272b5eefda63257c)): ?>
-<?php $attributes = $__attributesOriginal074a021b9d42f490272b5eefda63257c; ?>
-<?php unset($__attributesOriginal074a021b9d42f490272b5eefda63257c); ?>
+<?php if (isset($__attributesOriginal8c81617a70e11bcf247c4db924ab1b62)): ?>
+<?php $attributes = $__attributesOriginal8c81617a70e11bcf247c4db924ab1b62; ?>
+<?php unset($__attributesOriginal8c81617a70e11bcf247c4db924ab1b62); ?>
 <?php endif; ?>
-<?php if (isset($__componentOriginal074a021b9d42f490272b5eefda63257c)): ?>
-<?php $component = $__componentOriginal074a021b9d42f490272b5eefda63257c; ?>
-<?php unset($__componentOriginal074a021b9d42f490272b5eefda63257c); ?>
+<?php if (isset($__componentOriginal8c81617a70e11bcf247c4db924ab1b62)): ?>
+<?php $component = $__componentOriginal8c81617a70e11bcf247c4db924ab1b62; ?>
+<?php unset($__componentOriginal8c81617a70e11bcf247c4db924ab1b62); ?>
 <?php endif; ?>
-        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                            </td>
+                            <td class="py-3 px-4 text-right">
+                                <div class="flex items-center justify-end gap-2">
+                                    <a href="<?php echo e(route('customers.show', $c->id)); ?>" wire:navigate
+                                        class="text-[11px] font-semibold text-emerald-dark hover:text-emerald px-2 py-1 bg-emerald-bg rounded">Detail</a>
+                                    <button wire:click="delete(<?php echo e($c->id); ?>)"
+                                        class="text-[11px] font-semibold text-error hover:opacity-70">Nonaktifkan</button>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
+                        <tr>
+                            <td colspan="4" class="py-8 text-center text-slate-400 text-sm">Belum ada pelanggan. Mulai menambahkan pelanggan pertama Anda untuk mencatat transaksi dan resep.</td>
+                        </tr>
+                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <div class="mt-4">

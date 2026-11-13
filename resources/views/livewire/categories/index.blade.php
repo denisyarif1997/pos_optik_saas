@@ -43,28 +43,42 @@
         </div>
     @endif
 
-    <div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
-        @forelse ($categories as $c)
-            <div class="card p-4 hover:border-accent/50 transition">
-                <div class="flex justify-between items-center mb-3">
-                    <div class="font-semibold text-text-main truncate">{{ $c->name }}</div>
-                    <x-status-badge :status="$c->is_active ? 'Aktif' : 'Nonaktif'" :class="$c->is_active ? 'success' : 'error'" />
-                </div>
-                <div class="text-[11px] text-text-secondary mb-3">{{ Str::slug($c->name) }}</div>
-                <div class="flex items-center gap-2 pt-3 border-t border-line">
-                    <button wire:click="toggle({{ $c->id }})"
-                        class="flex-1 btn-ghost py-2 text-xs text-center">{{ $c->is_active ? 'Nonaktifkan' : 'Aktifkan' }}</button>
-                    <a href="{{ route('categories.edit', $c->id) }}" wire:navigate
-                        class="flex-1 btn-primary py-2 text-xs text-center">Ubah</a>
-                </div>
-            </div>
-        @empty
-            <div class="col-span-1 sm:col-span-2 xl:col-span-3">
-                <x-empty-state title="Belum ada kategori."
-                    description="Tambahkan kategori pertama untuk mengelompokkan produk toko Anda."
-                    actionHref="{{ route('categories.index') }}" actionLabel="Tambah Kategori" />
-            </div>
-        @endforelse
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm border-collapse">
+                <thead class="bg-slate-100 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    <tr>
+                        <th class="py-3 px-4 text-left">Nama Kategori</th>
+                        <th class="py-3 px-4 text-left w-32">Slug</th>
+                        <th class="py-3 px-4 text-left w-20">Status</th>
+                        <th class="py-3 px-4 text-right w-24">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 bg-white">
+                    @forelse ($categories as $c)
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="py-3 px-4 font-medium text-text-main">{{ $c->name }}</td>
+                            <td class="py-3 px-4 text-[11px] text-text-secondary">{{ Str::slug($c->name) }}</td>
+                            <td class="py-3 px-4">
+                                <x-status-badge :status="$c->is_active ? 'Aktif' : 'Nonaktif'" :class="$c->is_active ? 'success' : 'error'" />
+                            </td>
+                            <td class="py-3 px-4 text-right">
+                                <div class="flex items-center justify-end gap-2">
+                                    <button wire:click="toggle({{ $c->id }})"
+                                        class="text-[11px] font-semibold {{ $c->is_active ? 'text-error' : 'text-success' }} hover:opacity-70">{{ $c->is_active ? 'Nonaktifkan' : 'Aktifkan' }}</button>
+                                    <a href="{{ route('categories.edit', $c->id) }}" wire:navigate
+                                        class="text-[11px] font-semibold text-emerald-dark hover:text-emerald px-2 py-1 bg-emerald-bg rounded">Ubah</a>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="4" class="py-8 text-center text-slate-400 text-sm">Belum ada kategori. Tambahkan kategori pertama untuk mengelompokkan produk toko Anda.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 

@@ -1,28 +1,22 @@
 @php
     $rp = fn ($n) => 'Rp ' . number_format((float) $n, 0, ',', '.');
     $presets = ['today' => 'Hari ini', '7d' => '7 hari', '30d' => '30 hari', 'all' => 'Semua'];
-    $badge = fn ($st) => match ($st) {
-        'lunas' => 'bg-emerald-100 text-emerald-700',
-        'dp' => 'bg-blue-100 text-blue-700',
-        default => 'bg-amber-100 text-amber-700',
+    $badgeClass = fn ($st) => match ($st) {
+        'lunas' => 'success',
+        'dp' => 'info',
+        default => 'warning',
     };
 @endphp
 
-<div class="space-y-4">
-    {{-- Header --}}
-    <div class="flex flex-wrap items-center gap-3">
-        <div>
-            <h1 class="text-xl font-semibold tracking-tight">Riwayat Transaksi</h1>
-            <p class="text-xs text-slate-500">Semua penjualan tokomu</p>
-        </div>
-        <a href="{{ route('pos.cashier') }}" wire:navigate
-           class="ml-auto bg-slate-900 hover:bg-black text-white text-sm font-semibold px-4 py-2.5 rounded-lg">
-            + Transaksi Baru
-        </a>
-    </div>
+<div>
+    <x-page-header title="Riwayat Transaksi" description="Semua penjualan toko Anda">
+        <x-slot:actions>
+            <a href="{{ route('pos.cashier') }}" wire:navigate class="btn-primary px-4 py-2 text-sm">+ Transaksi Baru</a>
+        </x-slot:actions>
+    </x-page-header>
 
     {{-- Ringkasan (seluruh hasil filter) --}}
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
         <div class="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
             <p class="text-xs text-emerald-600 font-medium">Transaksi</p>
             <p class="text-lg font-bold text-emerald-800">{{ number_format($summary['count']) }}</p>
@@ -44,136 +38,93 @@
     </div>
 
     {{-- Filter --}}
-    <div class="bg-white rounded-xl border border-slate-200 p-3 space-y-3">
-        <div class="flex flex-wrap gap-2">
-            <input type="search" wire:model.live.debounce.300ms="search"
-                   placeholder="Cari kode atau nama pelanggan…"
-                   class="flex-1 min-w-[220px] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-400 outline-none">
-            <select wire:model.live="paymentStatus"
-                    class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-400 outline-none">
+    <div class="bg-white rounded-xl border border-slate-200 p-4 space-y-3 mb-4">
+        <x-search-input model="search" placeholder="Cari kode atau nama pelanggan…" label="Cari transaksi" />
+
+        <div class="flex flex-wrap items-center gap-3">
+            <select wire:model.live="paymentStatus" class="input">
                 <option value="">Semua status</option>
                 @foreach ($statusOptions as $opt)
                     <option value="{{ $opt }}">{{ ucfirst($opt) }}</option>
                 @endforeach
             </select>
-        </div>
 
-        <div class="flex flex-wrap items-center gap-2">
-            @foreach ($presets as $key => $label)
-                <button type="button" wire:click="setRange('{{ $key }}')"
-                        class="px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors
-                               {{ $activeRange === $key ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50' }}">
-                    {{ $label }}
-                </button>
-            @endforeach
+            <div class="flex items-center gap-1.5">
+                @foreach ($presets as $key => $label)
+                    <button type="button" wire:click="setRange('{{ $key }}')"
+                            class="px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors
+                                   {{ $activeRange === $key ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50' }}">
+                        {{ $label }}
+                    </button>
+                @endforeach
+            </div>
 
-            <div class="flex items-center gap-1.5 ml-auto">
+            <div class="flex items-center gap-1.5">
                 <input type="date" wire:model.live="from"
-                       class="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs focus:ring-2 focus:ring-emerald-400 outline-none">
-                <span class="text-slate-400 text-xs">s/d</span>
+                       class="input text-xs px-2.5 py-1.5">
+                <span class="text-slate-400 text-[10px]">s/d</span>
                 <input type="date" wire:model.live="to"
-                       class="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs focus:ring-2 focus:ring-emerald-400 outline-none">
+                       class="input text-xs px-2.5 py-1.5">
                 <button type="button" wire:click="resetFilter"
-                        class="text-xs text-slate-500 hover:text-slate-700 underline ml-1">Reset</button>
+                        class="text-[11px] text-slate-500 hover:text-slate-700 underline ml-1">Reset</button>
             </div>
         </div>
     </div>
 
     <div wire:loading.class="opacity-60" class="transition-opacity">
-        {{-- Desktop: tabel --}}
-        <div class="hidden md:block bg-white rounded-xl border border-slate-200 p-4 overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead>
-                    <tr class="text-left text-xs uppercase tracking-wider text-slate-400 border-b border-slate-100">
-                        <th class="py-2.5 pr-3">Transaksi</th>
-                        <th class="py-2.5 pr-3">Pelanggan</th>
-                        <th class="py-2.5 pr-3 text-right">Total</th>
-                        <th class="py-2.5 pr-3 text-right">Dibayar</th>
-                        <th class="py-2.5 pr-3 text-right">Sisa</th>
-                        <th class="py-2.5 pr-3">Kasir</th>
-                        <th class="py-2.5 pr-3">Status</th>
-                        <th class="py-2.5 text-center">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($sales as $s)
-                        @php
-                            $total = (float) $s->total;
-                            $paid = (float) $s->paid_total;
-                            $disc = (float) $s->discount_total;
-                            $sisa = max(0, $total - $paid);
-                        @endphp
-                        <tr wire:key="sale-{{ $s->id }}" class="border-b border-slate-50 last:border-0 hover:bg-slate-50/50">
-                            <td class="py-2.5 pr-3">
-                                <p class="font-bold">{{ $s->code }}</p>
-                                <p class="text-[11px] text-slate-400">{{ $s->sold_at?->translatedFormat('d M Y, H:i') ?? '-' }}</p>
-                            </td>
-                            <td class="py-2.5 pr-3 font-medium text-slate-800">{{ $s->customer?->name ?? '-' }}</td>
-                            <td class="py-2.5 pr-3 text-right">
-                                <p class="font-bold">{{ $rp($total) }}</p>
-                                @if ($disc > 0)
-                                    <p class="text-[11px] text-slate-400">Diskon {{ $rp($disc) }}</p>
-                                @endif
-                            </td>
-                            <td class="py-2.5 pr-3 text-right font-semibold {{ $sisa <= 0 ? 'text-emerald-700' : 'text-amber-700' }}">{{ $rp($paid) }}</td>
-                            <td class="py-2.5 pr-3 text-right font-bold {{ $sisa <= 0 ? 'text-slate-300' : 'text-red-600' }}">{{ $sisa > 0 ? $rp($sisa) : '-' }}</td>
-                            <td class="py-2.5 pr-3 text-slate-500 text-xs">{{ $s->cashier?->name ?? '-' }}</td>
-                            <td class="py-2.5 pr-3">
-                                <span class="text-[11px] font-bold px-2.5 py-1 rounded-full {{ $badge($s->payment_status) }}">{{ ucfirst($s->payment_status) }}</span>
-                            </td>
-                            <td class="py-2.5 text-center">
-                                <a href="{{ route('sales.show', $s->id) }}" wire:navigate
-                                   class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-black text-white text-xs font-semibold transition-colors">
-                                    <x-icon name="eye" class="w-3.5 h-3.5" />
-                                    Detail
-                                </a>
-                            </td>
+        <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm border-collapse">
+                    <thead class="bg-slate-100 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        <tr>
+                            <th class="py-3 px-4 text-left w-40">Transaksi</th>
+                            <th class="py-3 px-4 text-left">Pelanggan</th>
+                            <th class="py-3 px-4 text-right w-32">Total</th>
+                            <th class="py-3 px-4 text-right w-32">Dibayar</th>
+                            <th class="py-3 px-4 text-right w-32">Sisa</th>
+                            <th class="py-3 px-4 text-left w-32">Kasir</th>
+                            <th class="py-3 px-4 text-left w-20">Status</th>
+                            <th class="py-3 px-4 text-right w-24">Aksi</th>
                         </tr>
-                    @empty
-                        <tr><td colspan="8" class="py-8 text-center text-slate-400">Tidak ada transaksi pada filter ini.</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-
-        {{-- Mobile: kartu --}}
-        <div class="md:hidden space-y-2">
-            @forelse ($sales as $s)
-                @php
-                    $total = (float) $s->total;
-                    $paid = (float) $s->paid_total;
-                    $sisa = max(0, $total - $paid);
-                @endphp
-                <a wire:key="sale-m-{{ $s->id }}" href="{{ route('sales.show', $s->id) }}" wire:navigate
-                   class="block bg-white rounded-xl border border-slate-200 p-3 active:bg-slate-50">
-                    <div class="flex items-start justify-between gap-2">
-                        <div class="min-w-0">
-                            <p class="font-bold text-sm">{{ $s->code }}</p>
-                            <p class="text-[11px] text-slate-400">{{ $s->sold_at?->translatedFormat('d M Y, H:i') ?? '-' }}</p>
-                        </div>
-                        <span class="shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-full {{ $badge($s->payment_status) }}">{{ ucfirst($s->payment_status) }}</span>
-                    </div>
-                    <p class="text-sm text-slate-700 mt-1.5 truncate">{{ $s->customer?->name ?? '-' }}</p>
-                    <div class="flex items-end justify-between mt-2 pt-2 border-t border-slate-100">
-                        <div>
-                            <p class="text-[11px] text-slate-400">Total</p>
-                            <p class="font-bold text-sm">{{ $rp($total) }}</p>
-                        </div>
-                        @if ($sisa > 0)
-                            <div class="text-right">
-                                <p class="text-[11px] text-slate-400">Sisa</p>
-                                <p class="font-bold text-sm text-red-600">{{ $rp($sisa) }}</p>
-                            </div>
-                        @endif
-                    </div>
-                </a>
-            @empty
-                <div class="bg-white rounded-xl border border-slate-200 py-8 text-center text-slate-400 text-sm">
-                    Tidak ada transaksi pada filter ini.
-                </div>
-            @endforelse
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 bg-white">
+                        @forelse ($sales as $s)
+                            @php
+                                $total = (float) $s->total;
+                                $paid = (float) $s->paid_total;
+                                $disc = (float) $s->discount_total;
+                                $sisa = max(0, $total - $paid);
+                            @endphp
+                            <tr class="hover:bg-slate-50 transition-colors">
+                                <td class="py-3 px-4">
+                                    <div class="font-medium text-text-main">{{ $s->code }}</div>
+                                    <p class="text-[11px] text-text-secondary">{{ $s->sold_at?->translatedFormat('d M Y, H:i') ?? '-' }}</p>
+                                </td>
+                                <td class="py-3 px-4 font-medium text-text-main">{{ $s->customer?->name ?? '-' }}</td>
+                                <td class="py-3 px-4 text-[11px] font-semibold text-text-main text-right">{{ $rp($total) }}</td>
+                                <td class="py-3 px-4 text-[11px] text-right {{ $sisa <= 0 ? 'text-success' : 'text-error' }}">{{ $rp($paid) }}</td>
+                                <td class="py-3 px-4 text-[11px] text-right {{ $sisa <= 0 ? 'text-slate-400' : 'text-error' }}">{{ $sisa > 0 ? $rp($sisa) : '-' }}</td>
+                                <td class="py-3 px-4 text-[11px] text-text-secondary">{{ $s->cashier?->name ?? '-' }}</td>
+                                <td class="py-3 px-4">
+                                    <x-status-badge :status="ucfirst($s->payment_status)" :class="$badgeClass($s->payment_status)" />
+                                </td>
+                                <td class="py-3 px-4 text-right">
+                                    <a href="{{ route('sales.show', $s->id) }}" wire:navigate
+                                        class="text-[11px] font-semibold text-emerald-dark hover:text-emerald px-2 py-1 bg-emerald-bg rounded">Detail</a>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="8" class="py-8 text-center text-slate-400 text-sm">Tidak ada transaksi pada filter ini.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
-    <div>{{ $sales->links() }}</div>
+    <div class="mt-4">
+        {{ $sales->links() }}
+    </div>
 </div>

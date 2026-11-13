@@ -24,13 +24,29 @@
         <div class="flex items-center justify-between font-semibold"><span>Total</span><span class="text-emerald-700">Rp {{ number_format($total, 0, ',', '.') }}</span></div>
         <button wire:click="save" class="w-full bg-slate-900 hover:bg-black text-white text-sm font-semibold">Simpan & Tambah Stok →</button>
     </div>
-    <div class="bg-white rounded-xl border border-slate-200 p-5">
-        <h2 class="font-semibold mb-3">Riwayat Pembelian</h2>
-        @forelse ($history as $h)
-            <div class="flex justify-between text-sm py-2 border-b border-slate-50 last:border-0"><span class="font-bold">{{ $h->code }}</span><span>Rp {{ number_format($h->total, 0, ',', '.') }}</span></div>
-        @empty
-            <p class="text-sm text-slate-400 text-center py-4">Belum ada pembelian.</p>
-        @endforelse
+    <div class="bg-white rounded-xl border border-slate-200 p-5 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm border-collapse">
+                <thead class="bg-slate-100 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    <tr>
+                        <th class="py-3 px-4 text-left">Kode Pembelian</th>
+                        <th class="py-3 px-4 text-right w-32">Total</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 bg-white">
+                    @forelse ($history as $h)
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="py-3 px-4 font-medium text-text-main">{{ $h->code }}</td>
+                            <td class="py-3 px-4 text-[11px] font-semibold text-text-main text-right">Rp {{ number_format($h->total, 0, ',', '.') }}</td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="2" class="py-8 text-center text-slate-400 text-sm">Belum ada pembelian.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 

@@ -5,26 +5,42 @@
 
     <x-search-input model="search" placeholder="Cari nama / nomor HP..." label="Cari pelanggan" />
 
-    <div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
-        @forelse ($customers as $c)
-            <div class="card p-4 hover:border-accent/50 transition">
-                <div class="flex justify-between items-start mb-2">
-                    <div class="font-semibold text-text-main truncate">{{ $c->name }}</div>
-                    <span class="status-badge info">Aktif</span>
-                </div>
-                <div class="text-[11px] text-text-secondary mb-3">{{ $c->phone ?? '-' }}</div>
-                <div class="flex items-center gap-2 pt-3 border-t border-line">
-                    <a href="{{ route('customers.show', $c->id) }}" wire:navigate
-                        class="text-accent text-xs font-medium hover:text-accent-hover">Lihat detail &rarr;</a>
-                    <button wire:click="delete({{ $c->id }})"
-                        class="text-error text-xs font-medium hover:text-error/80">Nonaktifkan</button>
-                </div>
-            </div>
-        @empty
-            <x-empty-state title="Belum ada pelanggan."
-                description="Mulai menambahkan pelanggan pertama Anda untuk mencatat transaksi dan resep."
-                actionHref="{{ route('customers.create') }}" actionLabel="Tambah Pelanggan" />
-        @endforelse
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm border-collapse">
+                <thead class="bg-slate-100 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    <tr>
+                        <th class="py-3 px-4 text-left">Nama Pelanggan</th>
+                        <th class="py-3 px-4 text-left w-32">Nomor HP</th>
+                        <th class="py-3 px-4 text-left w-20">Status</th>
+                        <th class="py-3 px-4 text-right w-24">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 bg-white">
+                    @forelse ($customers as $c)
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="py-3 px-4 font-medium text-text-main">{{ $c->name }}</td>
+                            <td class="py-3 px-4 text-[11px] text-text-secondary">{{ $c->phone ?? '-' }}</td>
+                            <td class="py-3 px-4">
+                                <x-status-badge :status="'Aktif'" class="info" />
+                            </td>
+                            <td class="py-3 px-4 text-right">
+                                <div class="flex items-center justify-end gap-2">
+                                    <a href="{{ route('customers.show', $c->id) }}" wire:navigate
+                                        class="text-[11px] font-semibold text-emerald-dark hover:text-emerald px-2 py-1 bg-emerald-bg rounded">Detail</a>
+                                    <button wire:click="delete({{ $c->id }})"
+                                        class="text-[11px] font-semibold text-error hover:opacity-70">Nonaktifkan</button>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="4" class="py-8 text-center text-slate-400 text-sm">Belum ada pelanggan. Mulai menambahkan pelanggan pertama Anda untuk mencatat transaksi dan resep.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <div class="mt-4">

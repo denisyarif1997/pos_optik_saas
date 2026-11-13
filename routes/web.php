@@ -36,6 +36,7 @@ use App\Livewire\Settings\Staff as StaffSettings;
 use App\Livewire\Settings\StoreSettings;
 use App\Livewire\StockOpnames\Count;
 use App\Livewire\StockOpnames\Index;
+use App\Livewire\StockOpnames\Show;
 use App\Livewire\Stores\Create as StoreCreate;
 use App\Livewire\Suppliers\Index as SupplierIndex;
 use App\Livewire\Warranties\Index as WarrantyIndex;
@@ -132,6 +133,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::get('/stock-opnames', Index::class)->name('stock-opnames.index')->middleware('store.role:owner,stok');
         Route::get('/stock-opnames/{id}', Count::class)->name('stock-opnames.count')->middleware('store.role:owner,stok');
+        Route::get('/stock-opnames/{id}/show', Show::class)->name('stock-opnames.show')->middleware('store.role:owner,stok');
         Route::get('/inventory', InventoryIndex::class)->name('inventory.index')->middleware('store.role:owner,stok');
         Route::get('/inventory/lens-grid/{id}', LensGrid::class)->name('inventory.lens-grid')->middleware('store.role:owner,stok');
         Route::get('/inventory/stock-history', StockHistory::class)->name('inventory.stock-history')->middleware('store.role:owner,stok');

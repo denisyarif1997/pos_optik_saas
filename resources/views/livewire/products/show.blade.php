@@ -15,15 +15,15 @@
                 <div>
                     <label class="label text-sm font-medium mb-2">Tipe</label>
                     <p class="text-lg font-medium">
-                        @if($product->type === 'frame')
+                        @if($product->type === 'FRAME')
                             <span class="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded">Frame</span>
-                        @elseif($product->type === 'lensa')
+                        @elseif($product->type === 'STOCK_LENS')
                             <span class="bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded">Lensa</span>
-                        @elseif($product->type === 'softlens')
+                        @elseif($product->type === 'CONTACT_LENS')
                             <span class="bg-purple-100 text-purple-800 text-xs font-bold px-2 py-1 rounded">Softlens</span>
-                        @elseif($product->type === 'cairan')
+                        @elseif($product->type === 'RX_LENS')
                             <span class="bg-orange-100 text-orange-800 text-xs font-bold px-2 py-1 rounded">Cairan</span>
-                        @elseif($product->type === 'aksesori')
+                        @elseif($product->type === 'SERVICE')
                             <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-2 py-1 rounded">Aksesori</span>
                         @endif
                     </p>

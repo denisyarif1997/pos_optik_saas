@@ -43,7 +43,8 @@ $menuGroups = [
         'items' => [
             ['route' => 'pos.cashier', 'active' => 'pos.*', 'label' => 'Kasir POS', 'icon' => 'credit-card', 'roles' => ['owner', 'kasir']],
             ['route' => 'sales.index', 'active' => 'sales.*', 'label' => 'Riwayat Transaksi', 'icon' => 'wallet'],
-            ['route' => 'optical-orders.index', 'active' => 'optical-orders.*', 'label' => 'Pesanan Kacamata', 'icon' => 'glasses'],
+            // ['route' => 'optical-orders.index', 'active' => 'optical-orders.*', 'label' => 'Pesanan Kacamata', 'icon' => 'glasses'],
+            ['route' => 'optical-orders.index', 'active' => ['optical-orders.index', 'optical-orders.create', 'optical-orders.edit', 'optical-orders.show'], 'label' => 'Pesanan Kacamata', 'icon' => 'glasses'],
             ['route' => 'optical-orders.receivables', 'active' => 'optical-orders.receivables', 'label' => 'Piutang Pesanan', 'icon' => 'wallet', 'roles' => ['owner', 'kasir', 'optician']],
             ['route' => 'returns.index', 'active' => 'returns.*', 'label' => 'Retur Penjualan', 'icon' => 'return', 'roles' => ['owner', 'kasir']],
         ],
@@ -61,7 +62,7 @@ $menuGroups = [
         'items' => [
             ['route' => 'products.index', 'active' => 'products.*', 'label' => 'Produk & Lensa', 'icon' => 'box', 'roles' => ['owner', 'stok']],
             ['route' => 'categories.index', 'active' => 'categories.*', 'label' => 'Kategori', 'icon' => 'tag', 'roles' => ['owner', 'stok']],
-            ['route' => 'inventory.index', 'active' => 'inventory.*', 'label' => 'Stok Barang', 'icon' => 'layers', 'roles' => ['owner', 'stok']],
+            ['route' => 'inventory.index', 'active' => 'inventory.*', 'label' => 'Stok Lensa', 'icon' => 'layers', 'roles' => ['owner', 'stok']],
             ['route' => 'stock-opnames.index', 'active' => 'stock-opnames.*', 'label' => 'Stock Opname', 'icon' => 'check', 'roles' => ['owner', 'stok']],
             ['route' => 'suppliers.index', 'active' => 'suppliers.*', 'label' => 'Supplier', 'icon' => 'truck', 'roles' => ['owner', 'stok']],
             ['route' => 'purchases.index', 'active' => 'purchases.*', 'label' => 'Pembelian', 'icon' => 'truck', 'roles' => ['owner', 'stok']],

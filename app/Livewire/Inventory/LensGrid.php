@@ -28,14 +28,14 @@ class LensGrid extends Component
 
     public string $editingKey = '';
 
-    public function mount(int $productId): void
+    public function mount(int $id): void
     {
         $storeId = app(ActiveStore::class)->id();
         abort_unless($storeId, 403);
 
-        $product = Product::forStore($storeId)->findOrFail($productId);
+        $product = Product::forStore($storeId)->findOrFail($id);
         $this->authorize('manage', StockLensMatrix::class);
-        $this->productId = $product->id;
+        $this->productId = $id;
 
         $this->loadMatrix();
     }
