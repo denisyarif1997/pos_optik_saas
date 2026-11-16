@@ -1,0 +1,12 @@
+HTTP/1.1 200 OK
+Host: 127.0.0.1:8000
+Connection: close
+X-Powered-By: PHP/8.3.4
+Cache-Control: max-age=0, must-revalidate, no-cache, no-store, private
+Date: Mon, 26 Oct 2026 04:10:48 GMT
+Content-Type: text/html; charset=utf-8
+Pragma: no-cache
+Expires: Fri, 01 Jan 1990 00:00:00 GMT
+Set-Cookie: XSRF-TOKEN=eyJpdiI6Ik0yRTZzOGg5UjBUd2Q3bE44dENQcmc9PSIsInZhbHVlIjoiS1pwSXlLZEZtVnZ6VjZPSHk2bVAzVjFzbWlYVnhZU3VuL1RjanNtOWpCK3hhb1RQQjJFeVkwbEJ2Um9vNy9pNDZUTEJ3YXR4RzBNZHQ1aDRyS1lMKzFDd1J1aGpzVVhvdmR1ZlRTR1pqSklUc0ZRMW15S1hCeVZGbWVyNUtsYmUiLCJtYWMiOiI3NDg1Mzk1ODdjZDYzZjIxMTY2OGRjN2IyZDA3MTg1MjlhMTg1NzY2ODJiYzk4MzUwZmZlZGJjYmRhNzJmZmNjIiwidGFnIjoiIn0%3D; expires=Mon, 26 Oct 2026 06:10:48 GMT; Max-Age=7200; path=/; samesite=lax
+Set-Cookie: my-optik-session=eyJpdiI6IjR0Zks3YXUwOG9iWjhhMjBHcHAyK3c9PSIsInZhbHVlIjoiQlZRZEdHVGE2VXpTWUhVZnpsQ1UvMjJQYml6TWtTYWJucEFkRUZjLzRGVERZTDdhOUtCMU1HdUVZa2ZYMnBmWkhSY0tEdXlpMnlsMzJXUTdlMm45WTh1OEJMSkNmc3hRZjhmT3RwRjVsYk1hTnBUVlhWT0xVNlJINEJ3T1pXVTciLCJtYWMiOiI2YmNlYjkxNGJjNTViYWZhZDdhOGM4N2ViNjc4Y2ViYjgyZDIyODhjZDY3OTdhNDQwNTM5NjhkNmYyZDM3NjJiIiwidGFnIjoiIn0%3D; expires=Mon, 26 Oct 2026 06:10:48 GMT; Max-Age=7200; path=/; httponly; samesite=lax
+

@@ -1,0 +1,417 @@
+<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Masuk</title><link rel=\"icon\" type=\"image/svg+xml\" href=\"/images/logo.svg\"/><link rel=\"icon\" type=\"image/x-icon\" href=\"/favicon.ico\"/><link rel=\"apple-touch-icon\" href=\"/images/logo.svg\"/><link rel=\"manifest\" href=\"/manifest.json\"/><link rel="preload" as="style" href="http://127.0.0.1:8000/build/assets/app-DWUV_a0P.css" /><link rel="modulepreload" as="script" href="http://127.0.0.1:8000/build/assets/app-DGqIBTKO.js" /><link rel="stylesheet" href="http://127.0.0.1:8000/build/assets/app-DWUV_a0P.css" data-navigate-track="reload" /><script type="module" src="http://127.0.0.1:8000/build/assets/app-DGqIBTKO.js" data-navigate-track="reload"></script><!-- Livewire Styles --><style >[wire\:loading][wire\:loading], [wire\:loading\.delay][wire\:loading\.delay], [wire\:loading\.list-item][wire\:loading\.list-item], [wire\:loading\.inline-block][wire\:loading\.inline-block], [wire\:loading\.inline][wire\:loading\.inline], [wire\:loading\.block][wire\:loading\.block], [wire\:loading\.flex][wire\:loading\.flex], [wire\:loading\.table][wire\:loading\.table], [wire\:loading\.grid][wire\:loading\.grid], [wire\:loading\.inline-flex][wire\:loading\.inline-flex] {display: none;}[wire\:loading\.delay\.none][wire\:loading\.delay\.none], [wire\:loading\.delay\.shortest][wire\:loading\.delay\.shortest], [wire\:loading\.delay\.shorter][wire\:loading\.delay\.shorter], [wire\:loading\.delay\.short][wire\:loading\.delay\.short], [wire\:loading\.delay\.default][wire\:loading\.delay\.default], [wire\:loading\.delay\.long][wire\:loading\.delay\.long], [wire\:loading\.delay\.longer][wire\:loading\.delay\.longer], [wire\:loading\.delay\.longest][wire\:loading\.delay\.longest] {display: none;}[wire\:offline][wire\:offline] {display: none;}[wire\:dirty]:not(textarea):not(input):not(select) {display: none;}:root {--livewire-progress-bar-color: #2299dd;}[x-cloak="x-cloak"],[x-cloak=""] {display: none !important;}[wire\:cloak="wire:cloak"],[wire\:cloak=""] {display: none !important;}dialog#livewire-error::backdrop {background-color: rgba(0, 0, 0, .6);}</style><script id="browser-logger-active">
+(function() {
+    const ENDPOINT = 'http://127.0.0.1:8000/_boost/browser-logs';
+    const logQueue = [];
+    let flushTimeout = null;
+    const captureTypes = ["error","warning","info","log","debug","table"];
+
+    console.log('🔍 Browser logger active (MCP server detected). Posting to: ' + ENDPOINT);
+
+    // Store original console methods
+    const originalConsole = {
+        log: console.log,
+        debug: console.debug,
+        info: console.info,
+        error: console.error,
+        warn: console.warn,
+        table: console.table
+    };
+
+    // Walk own enumerable keys so JSON.stringify cannot auto-invoke a proxy fake toJSON (e.g. Livewire's `$wire`) and fire a real request.
+    function toSafeValue(value, seen) {
+        if (value === null || typeof value !== 'object') {
+            return value;
+        }
+        if (value instanceof Error) {
+            return { name: value.name, message: value.message, stack: value.stack };
+        }
+        // Date has no own enumerable keys, so the walk below would collapse it to {}.
+        if (value instanceof Date) {
+            return value.toISOString();
+        }
+        if (seen.has(value)) {
+            return '[Circular]';
+        }
+        seen.add(value);
+        if (Array.isArray(value)) {
+            return value.map((item) => toSafeValue(item, seen));
+        }
+        const plain = {};
+        for (const key of Object.keys(value)) {
+            if (key === 'toJSON') continue;
+            try {
+                plain[key] = toSafeValue(value[key], seen);
+            } catch (e) {
+                plain[key] = '[Unreadable]';
+            }
+        }
+        return plain;
+    }
+
+    // Helper to safely stringify values
+    function safeStringify(obj) {
+        return JSON.stringify(toSafeValue(obj, new WeakSet()));
+    }
+
+    // Normalize log type for consistency (e.g., 'warn' to 'warning')
+    function normalizeType(type) {
+        return type === 'warn' ? 'warning' : type;
+    }
+
+    // Determine if a log type should be captured based on configured levels
+    function shouldCapture(type) {
+        return captureTypes.includes(normalizeType(type));
+    }
+
+    // Batch and send logs
+    function flushLogs() {
+        if (logQueue.length === 0) return;
+
+        const batch = logQueue.splice(0, logQueue.length);
+
+        fetch(ENDPOINT, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ logs: batch })
+        }).catch(err => {
+            // Silently fail to avoid infinite loops
+            originalConsole.error('Failed to send logs:', err);
+        });
+    }
+
+    // Debounced flush (100ms)
+    function scheduleFlush() {
+        if (flushTimeout) clearTimeout(flushTimeout);
+        flushTimeout = setTimeout(flushLogs, 100);
+    }
+
+    // Intercept console methods
+    ['log', 'debug', 'info', 'error', 'warn', 'table'].forEach(method => {
+        console[method] = function(...args) {
+            // Call original method
+            originalConsole[method].apply(console, args);
+
+            // Capture log data
+            try {
+                if (!shouldCapture(method)) {
+                    return;
+                }
+
+                logQueue.push({
+                    type: method,
+                    timestamp: new Date().toISOString(),
+                    data: args.map(arg => {
+                        try {
+                            return typeof arg === 'object' ? JSON.parse(safeStringify(arg)) : arg;
+                        } catch (e) {
+                            return String(arg);
+                        }
+                    }),
+                    url: window.location.href,
+                    userAgent: navigator.userAgent
+                });
+
+                scheduleFlush();
+            } catch (e) {
+                // Fail silently
+            }
+        };
+    });
+
+    // Global error handlers for uncaught errors
+    const originalOnError = window.onerror;
+    window.onerror = function boostErrorHandler(errorMsg, url, lineNumber, colNumber, error) {
+        try {
+            if (shouldCapture('error')) {
+                logQueue.push({
+                    type: 'uncaught_error',
+                    timestamp: new Date().toISOString(),
+                    data: [{
+                        message: errorMsg,
+                        filename: url,
+                        lineno: lineNumber,
+                        colno: colNumber,
+                        error: error ? {
+                            name: error.name,
+                            message: error.message,
+                            stack: error.stack
+                        } : null
+                    }],
+                    url: window.location.href,
+                    userAgent: navigator.userAgent
+                });
+
+                scheduleFlush();
+            }
+
+        } catch (e) {
+            // Fail silently
+        }
+
+        // Call original handler if it exists
+        if (originalOnError && typeof originalOnError === 'function') {
+            return originalOnError(errorMsg, url, lineNumber, colNumber, error);
+        }
+
+        // Let the error continue to propagate
+        return false;
+    }
+    window.addEventListener('error', (event) => {
+        try {
+            if (!shouldCapture('error')) {
+                return false;
+            }
+
+            logQueue.push({
+                type: 'window_error',
+                timestamp: new Date().toISOString(),
+                data: [{
+                    message: event.message,
+                    filename: event.filename,
+                    lineno: event.lineno,
+                    colno: event.colno,
+                    error: event.error ? {
+                        name: event.error.name,
+                        message: event.error.message,
+                        stack: event.error.stack
+                    } : null
+                }],
+                url: window.location.href,
+                userAgent: navigator.userAgent
+            });
+
+            scheduleFlush();
+        } catch (e) {
+            // Fail silently
+        }
+
+        // Let the error continue to propagate
+        return false;
+    });
+    window.addEventListener('unhandledrejection', (event) => {
+        try {
+            if (!shouldCapture('error')) {
+                return false;
+            }
+
+            logQueue.push({
+                type: 'error',
+                timestamp: new Date().toISOString(),
+                data: [{
+                    message: 'Unhandled Promise Rejection',
+                    reason: toSafeValue(event.reason, new WeakSet())
+                }],
+                url: window.location.href,
+                userAgent: navigator.userAgent
+            });
+
+            scheduleFlush();
+        } catch (e) {
+            // Fail silently
+        }
+
+        // Let the rejection continue to propagate
+        return false;
+    });
+
+    // Flush on page unload
+    window.addEventListener('beforeunload', () => {
+        if (logQueue.length > 0) {
+            navigator.sendBeacon(ENDPOINT, JSON.stringify({ logs: logQueue }));
+        }
+    });
+})();
+</script>
+</head>
+<body class="min-h-screen antialiased bg-gradient-to-br from-slate-50 via-slate-100 to-slate-50 flex items-center justify-center p-4"><div class="w-full max-w-2xl lg:max-w-4xl space-y-8">
+        <!-- Branding Section (visible on lg+) -->
+        <div class="hidden lg:flex flex-col justify-between bg-slate-900 text-white p-10">
+            <div class="flex items-center gap-2"><img src="/images/logo.svg" alt="Optik App Logo" class="h-8 w-auto"/><span class="text-sm font-semibold tracking-wide">OPTIK &middot; KASIR</span></div>
+<div><h2 class="text-2xl font-semibold leading-snug">Pembukuan toko optik<br>yang rapi dan cepat.</h2><p class="mt-2 text-sm text-slate-300">Kasir, stok, pelanggan, resep, dan pesanan dalam satu tempat.</p></div>
+<div class="text-xs text-slate-400">Satu akun untuk satu toko.</div>
+        </div>
+
+        <!-- Login Card -->
+        <div class="lg:flex items-center justify-center p-6">
+            <div class="w-full max-w-sm lg:w-96 lg:p-8 lg:pl-10">
+                <div class="rounded-2xl bg-white p-8 shadow-xl shadow-slate-200/40">
+                    <div wire:snapshot="{&quot;data&quot;:{&quot;email&quot;:&quot;&quot;,&quot;password&quot;:&quot;&quot;,&quot;remember&quot;:false},&quot;memo&quot;:{&quot;id&quot;:&quot;2KHfXXHQuOsIx4gFyKWR&quot;,&quot;name&quot;:&quot;auth.login&quot;,&quot;path&quot;:&quot;login&quot;,&quot;method&quot;:&quot;GET&quot;,&quot;release&quot;:&quot;a-a-a&quot;,&quot;children&quot;:[],&quot;scripts&quot;:[],&quot;assets&quot;:[],&quot;errors&quot;:[],&quot;locale&quot;:&quot;en&quot;,&quot;islands&quot;:[]},&quot;checksum&quot;:&quot;bc9caed27702e0484d76919f8f966599979d1f9adf7f62c999d69d37350baac4&quot;}" wire:effects="[]" wire:id="2KHfXXHQuOsIx4gFyKWR" wire:name="auth.login" class="fixed inset-0 z-50 overflow-y-auto bg-canvas">
+<div class="w-full min-h-dvh grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-[1.1fr_1fr]">
+
+    
+    <aside class="hidden lg:flex relative overflow-hidden flex-col justify-between gap-10 p-10 xl:p-14 bg-linear-to-br from-emerald to-emerald-dark text-white">
+        <div class="wave-blob bg-white/20 w-[420px] h-[420px] -top-24 -left-24"></div>
+        <div class="wave-blob bg-white/10 w-[480px] h-[480px] -bottom-40 -right-32"></div>
+
+        <div class="relative z-10 flex items-center gap-3">
+            <div class="flex items-center justify-center w-11 h-11 rounded-xl bg-white/15 backdrop-blur ring-1 ring-white/25">
+                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="15" r="3.2"/><circle cx="17" cy="15" r="3.2"/><path d="M10.2 15h3.6M3.8 15 2 12.5M20.2 15 22 12.5"/></svg>
+            </div>
+            <span class="text-xl font-bold tracking-tight">OptikGo</span>
+        </div>
+
+        <div class="relative z-10 max-w-md">
+            <h1 class="text-3xl xl:text-4xl font-bold leading-tight tracking-tight">
+                Kelola toko optik Anda dengan lebih cepat dan rapi.
+            </h1>
+            <p class="mt-4 text-white/80 leading-relaxed">
+                Kasir, resep lensa, stok frame, hingga laporan penjualan dalam satu aplikasi.
+            </p>
+
+            <ul class="mt-8 space-y-4 text-sm">
+                <!--[if BLOCK]><![endif]-->                    <li class="flex items-center gap-3">
+                        <span class="flex items-center justify-center w-6 h-6 shrink-0 rounded-full bg-white/20 ring-1 ring-white/30">
+                            <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0L3.3 9.7a1 1 0 011.4-1.4l3.8 3.8 6.8-6.8a1 1 0 011.4 0z" clip-rule="evenodd"/>
+                            </svg>
+                        </span>
+                        <span class="text-white/90">Transaksi kasir cepat &amp; akurat</span>
+                    </li>
+                                    <li class="flex items-center gap-3">
+                        <span class="flex items-center justify-center w-6 h-6 shrink-0 rounded-full bg-white/20 ring-1 ring-white/30">
+                            <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0L3.3 9.7a1 1 0 011.4-1.4l3.8 3.8 6.8-6.8a1 1 0 011.4 0z" clip-rule="evenodd"/>
+                            </svg>
+                        </span>
+                        <span class="text-white/90">Stok frame dan lensa terpantau real-time</span>
+                    </li>
+                                    <li class="flex items-center gap-3">
+                        <span class="flex items-center justify-center w-6 h-6 shrink-0 rounded-full bg-white/20 ring-1 ring-white/30">
+                            <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0L3.3 9.7a1 1 0 011.4-1.4l3.8 3.8 6.8-6.8a1 1 0 011.4 0z" clip-rule="evenodd"/>
+                            </svg>
+                        </span>
+                        <span class="text-white/90">Laporan penjualan siap kapan saja</span>
+                    </li>
+                <!--[if ENDBLOCK]><![endif]-->            </ul>
+        </div>
+
+        <p class="relative z-10 text-xs text-white/60">
+            &copy; 2026 My Optik. All rights reserved.
+        </p>
+    </aside>
+
+    
+    <main class="relative flex items-center justify-center p-6 sm:p-10 lg:p-12 overflow-hidden">
+        <div class="wave-blob wave-blob--primary opacity-20 w-[260px] h-[260px] -top-20 -right-20 lg:hidden"></div>
+
+        
+        <div class="w-full max-w-md relative z-10">
+
+            
+            <div class="lg:hidden flex items-center justify-center gap-3 mb-8">
+                <div class="flex items-center justify-center w-11 h-11 rounded-xl bg-emerald-bg text-emerald border border-emerald-soft shadow-sm">
+                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="15" r="3.2"/><circle cx="17" cy="15" r="3.2"/><path d="M10.2 15h3.6M3.8 15 2 12.5M20.2 15 22 12.5"/></svg>
+                </div>
+                <span class="text-xl font-bold tracking-tight text-text-main">OptikGo</span>
+            </div>
+
+            <div class="mb-8 text-center lg:text-left">
+                <h2 class="text-2xl sm:text-3xl font-bold tracking-tight text-text-main">Selamat datang kembali</h2>
+                <p class="mt-2 text-sm text-text-secondary">Masuk untuk membuka kasir tokomu.</p>
+            </div>
+
+            <div class="soft-card p-6 sm:p-8">
+
+                <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+                <form wire:submit="login" class="space-y-5" novalidate>
+
+                    
+                    <div>
+                        <label for="email" class="label">Email</label>
+                        <input
+                            id="email"
+                            type="email"
+                            wire:model="email"
+                            class="input"
+                            placeholder="nama@toko.com"
+                            autocomplete="email"
+                            autofocus
+                            required
+                                                    >
+                        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->                    </div>
+
+                    
+                    <div x-data="{ show: false }">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label for="password" class="label mb-0!">Kata sandi</label>
+                            <a href="#" class="text-xs font-medium text-text-secondary hover:text-emerald transition-colors">
+                                Lupa password?
+                            </a>
+                        </div>
+                        <div class="relative">
+                            <input
+                                id="password"
+                                type="password"
+                                :type="show ? 'text' : 'password'"
+                                wire:model="password"
+                                class="input pr-11 transition-colors focus-visible:ring-2 focus-visible:ring-emerald/50 focus-visible:outline-none"
+                                placeholder="Masukkan kata sandi"
+                                autocomplete="current-password"
+                                required
+                                                            >
+                            <button
+                                type="button"
+                                @click="show = !show"
+                                class="absolute inset-y-0 right-0 flex items-center px-3.5 text-text-muted hover:text-text-main transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald/50"
+                                :aria-label="show ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'"
+                                tabindex="-1"
+                            >
+                                
+                                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" x-show="!show">
+                                    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>
+                                </svg>
+                                
+                                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" x-show="show" x-cloak>
+                                    <path d="M17.94 17.94A10.9 10.9 0 0112 19c-6.5 0-10-7-10-7a18.5 18.5 0 015.06-5.94M9.9 4.24A9.1 9.1 0 0112 4c6.5 0 10 7 10 7a18.5 18.5 0 01-2.16 3.19M1 1l22 22"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->                    </div>
+
+                    
+                    <label class="flex items-center gap-2.5 cursor-pointer group w-fit">
+                        <input type="checkbox" wire:model="remember"
+                               class="w-4 h-4 rounded border-line text-emerald focus:ring-emerald/20 transition-colors cursor-pointer">
+                        <span class="text-sm text-text-secondary group-hover:text-text-main transition-colors">Ingat saya di perangkat ini</span>
+                    </label>
+
+                    
+                    <button
+                        type="submit"
+                        class="btn-primary w-full py-3 text-[15px] disabled:bg-emerald disabled:opacity-80"
+                        wire:loading.attr="disabled"
+                        wire:target="login"
+                    >
+                        <svg wire:loading wire:target="login" class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                            <path class="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+                        </svg>
+                        <span wire:loading.remove wire:target="login">Masuk</span>
+                        <span wire:loading wire:target="login">Memproses…</span>
+                    </button>
+                </form>
+            </div>
+
+            <p class="text-center text-sm text-text-secondary mt-6">
+                Belum punya akun?
+                <a href="http://127.0.0.1:8000/register" class="font-semibold text-emerald hover:text-emerald-dark transition-colors" wire:navigate>Daftar sekarang</a>
+            </p>
+
+            <p class="lg:hidden text-center mt-8 text-[11px] text-text-muted">
+                &copy; 2026 My Optik. All rights reserved.
+            </p>
+        </div>
+    </main>
+</div>
+</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div><!-- Livewire Scripts -->
+<script src="http://127.0.0.1:8000/livewire-5166c9aa/livewire.js?id=8ea5922c"   data-csrf="qqX7FmcrHiQErP3sv5hTJ5moIBF3sFq8Jqf4vFOj" data-module-url="http://127.0.0.1:8000/livewire-5166c9aa" data-update-uri="http://127.0.0.1:8000/livewire-5166c9aa/update" data-navigate-once="true"></script></body></html>
