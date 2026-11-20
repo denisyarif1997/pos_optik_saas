@@ -21,6 +21,9 @@ class Index extends Component
     #[Validate('nullable|date')]
     public ?string $valid_until = null;
 
+    #[Validate('nullable|string')]
+    public string $claim_notes = '';
+
     public function nextCode(int $storeId): string
     {
         $nextNumber = $this->getNextNumber($storeId) + 1;

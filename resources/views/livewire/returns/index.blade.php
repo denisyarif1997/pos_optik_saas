@@ -25,7 +25,7 @@
     <div class="bg-white rounded-xl border border-slate-200 p-5">
         <h2 class="font-semibold mb-3">Riwayat Retur</h2>
         @forelse ($history as $r)
-            <div class="text-sm py-2 border-b border-slate-50 last:border-0"><span class="text-slate-500">No. Transaksi:</span> <b>{{ $r->sale?->code ?? '-' }}</b> • qty {{ $r->qty }} • Rp {{ number_format($r->refund_amount, 0, ',', '.') }}</div>
+            <div class="text-sm py-2 border-b border-slate-50 last:border-0"><span class="text-slate-500">No. Transaksi:</span> <b>{{ $r->sale?->code ?? '-' }}</b> • qty {{ $r->qty }} • Rp {{ number_format($r->refund_amount, 0, ',', '.') }}<br><b> Alasan </b>{{ $r->reason }} <span class="text-slate-400 text-xs"><br><b>({{ $r->created_at->format('d M Y H:i') }})</span></div>
         @empty
             <p class="text-sm text-slate-400 text-center py-4">Belum ada retur.</p>
         @endforelse

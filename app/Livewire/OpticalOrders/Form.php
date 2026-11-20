@@ -36,6 +36,16 @@ class Form extends Component
 
     public array $frameIds = [];
 
+    private function getNextNumber(int $storeId): int
+    {
+        $id = OpticalOrder::forStore($storeId)
+            ->whereDate('created_at', today())
+            ->orderBy('id', 'desc')
+            ->value('id');
+
+        return $id > 0 ? (int) substr((string) $id, -4) : 0;
+    }
+
     public function mount(?int $id = null): void
     {
         $storeId = app('activeStore')->id();

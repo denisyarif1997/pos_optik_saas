@@ -48,7 +48,7 @@
     <div class="bg-white rounded-xl border border-slate-200 p-5">
         <h2 class="font-semibold mb-3">Produk Terlaris</h2>
         @forelse ($topProducts as $t)
-            <div class="flex justify-between text-sm py-2 border-b border-slate-50 last:border-0"><span class="font-bold">{{ $t->product?->name ?? '-' }} <span class="text-slate-400 font-normal">× {{ $t->qty }}</span></span><span>Rp {{ number_format($t->omzet, 0, ',', '.') }}</span></div>
+            <div wire:key="top-product-{{ $t->product_id }}" class="flex justify-between text-sm py-2 border-b border-slate-50 last:border-0"><span class="font-bold">{{ $t->product?->name ?? '-' }} <span class="text-slate-400 font-normal">× {{ $t->qty }}</span></span><span>Rp {{ number_format($t->omzet, 0, ',', '.') }}</span></div>
         @empty
             <p class="text-sm text-slate-400 text-center py-4">Belum ada penjualan pada periode ini.</p>
         @endforelse
@@ -62,7 +62,7 @@
                 $methodLabels = ['cash' => 'Tunai', 'transfer' => 'Transfer', 'qris' => 'QRIS', 'card' => 'Kartu'];
             @endphp
             @foreach ($methodLabels as $method => $label)
-                <div class="p-4 rounded-lg border border-slate-100 flex items-center justify-between">
+                <div wire:key="payment-method-{{ $method }}" class="p-4 rounded-lg border border-slate-100 flex items-center justify-between">
                     <div>
                         <div class="text-xs text-slate-400 uppercase font-semibold">{{ $label }}</div>
                         <div class="text-lg font-semibold">Rp {{ number_format($paymentMethods[$method] ?? 0, 0, ',', '.') }}</div>
@@ -110,7 +110,7 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse ($dailyTrend as $day)
-                        <tr>
+                        <tr wire:key="daily-trend-{{ $day['date'] }}">
                             <td class="py-3 px-4">{{ \Carbon\Carbon::parse($day['date'])->format('d M') }}</td>
                             <td class="py-3 px-4 text-right text-slate-600">Rp {{ number_format($day['sale'], 0, ',', '.') }}</td>
                             <td class="py-3 px-4 text-right text-blue-600">Rp {{ number_format($day['optical'], 0, ',', '.') }}</td>
@@ -145,7 +145,7 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse ($recentTransactions as $t)
-                        <tr>
+                        <tr wire:key="recent-transaction-{{ $t['type'] }}-{{ $t['code'] }}">
                             <td class="py-3 px-4">{{ \Carbon\Carbon::parse($t['date'])->format('d/m/Y H:i') }}</td>
                             <td class="py-3 px-4">
                                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold

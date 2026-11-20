@@ -1,9 +1,13 @@
 <div class="space-y-4">
     <x-page-header title="Kategori" description="Kelola kategori produk toko Anda">
         <x-slot:actions>
+<<<<<<< HEAD
             <!-- <button wire:click="showForm = true" class="btn-primary px-4 py-2 text-sm">+ Tambah Kategori</button> -->
             <a href="{{ route('categories.create') }}" wire:navigate class="btn-primary px-4 py-2 text-sm">+ Tambah Kategori</a>
 
+=======
+            <button wire:click="showForm = true" class="btn-primary px-4 py-2 text-sm">+ Tambah Kategori</button>
+>>>>>>> 0156bf298782d17664e61540b924ed3d0e9157a2
         </x-slot:actions>
     </x-page-header>
 
