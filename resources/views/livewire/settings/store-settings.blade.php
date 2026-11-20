@@ -10,7 +10,7 @@
                     <x-icon name="store" class="w-5 h-5" />
                 </div>
                 <div>
-                    <h2 class="font-semibold text-base text-text-main leading-tight">Profil &amp; Kontak Toko</h2>
+                    <h2 class="font-semibold text-base text-text-main leading-tight">Profil &amp; Kontak Toko.</h2>
                     <p class="text-xs text-text-secondary mt-0.5">Informasi ini akan tercetak pada struk penjualan dan nota pesanan kacamata</p>
                 </div>
             </div>
