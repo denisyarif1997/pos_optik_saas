@@ -129,32 +129,42 @@
 
     <!-- Transaksi Terkini -->
     <div class="bg-white rounded-xl border border-slate-200 p-5">
-        <h2 class="font-semibold mb-3">Transaksi Terkini</h2>
+        <div class="flex items-center justify-between mb-3">
+            <h2 class="font-semibold">Transaksi Terkini</h2>
+            <a href="{{ route('export.transactions', ['from' => $from, 'to' => $to]) }}"
+               class="text-xs font-bold px-3 py-1.5 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition">
+                ⬇ Export CSV
+            </a>
+        </div>
         <div class="overflow-x-auto">
             <table class="w-full text-sm border-collapse">
                 <thead class="bg-slate-100 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                     <tr>
-                        <th class="py-3 px-4">Tanggal</th>
-                        <th class="py-3 px-4">Jenis</th>
-                        <th class="py-3 px-4">Kode</th>
-                        <th class="py-3 px-4">Pelanggan</th>
+                        <th class="py-3 px-4 text-left">Tanggal</th>
+                        <th class="py-3 px-4 text-left">Jenis</th>
+                        <th class="py-3 px-4 text-left">Kode</th>
+                        <th class="py-3 px-4 text-left">Pelanggan</th>
+                        <th class="py-3 px-4 text-left">Nama Kas</th>
+                        <th class="py-3 px-4 text-left">Diproses Oleh</th>
                         <th class="py-3 px-4 text-right">Total</th>
                         <th class="py-3 px-4 text-right">Dibayar</th>
-                        <th class="py-3 px-4">Status</th>
+                        <th class="py-3 px-4 text-left">Status</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse ($recentTransactions as $t)
                         <tr wire:key="recent-transaction-{{ $t['type'] }}-{{ $t['code'] }}">
-                            <td class="py-3 px-4">{{ \Carbon\Carbon::parse($t['date'])->format('d/m/Y H:i') }}</td>
+                            <td class="py-3 px-4 whitespace-nowrap">{{ \Carbon\Carbon::parse($t['date'])->format('d/m/Y H:i') }}</td>
                             <td class="py-3 px-4">
                                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold
                                     {{ $t['type'] === 'Penjualan' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700' }}">
                                     {{ $t['type'] }}
                                 </span>
                             </td>
-                            <td class="py-3 px-4 font-medium">{{ $t['code'] }}</td>
+                            <td class="py-3 px-4 font-medium whitespace-nowrap">{{ $t['code'] }}</td>
                             <td class="py-3 px-4">{{ $t['customer'] }}</td>
+                            <td class="py-3 px-4 text-slate-600">{{ $t['cash_name'] }}</td>
+                            <td class="py-3 px-4 text-slate-600">{{ $t['processed_by'] }}</td>
                             <td class="py-3 px-4 text-right">Rp {{ number_format($t['total'], 0, ',', '.') }}</td>
                             <td class="py-3 px-4 text-right">Rp {{ number_format($t['paid'], 0, ',', '.') }}</td>
                             <td class="py-3 px-4">
@@ -171,7 +181,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="py-8 text-center text-sm text-slate-400">Belum ada transaksi pada periode ini.</td>
+                            <td colspan="9" class="py-8 text-center text-sm text-slate-400">Belum ada transaksi pada periode ini.</td>
                         </tr>
                     @endforelse
                 </tbody>

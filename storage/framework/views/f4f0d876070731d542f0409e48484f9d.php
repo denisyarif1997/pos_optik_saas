@@ -1,6 +1,7 @@
 <!-- Wrapper Utama dengan Alpine.js untuk perhitungan Frontend -->
 <div 
     class="flex flex-col lg:flex-row gap-6 items-start -m-2 sm:-m-4"
+    x-on:cashier-total-updated="total = Number($event.detail.total)"
     x-data="{
         payAmount: <?php if ((object) ('pay_amount') instanceof \Livewire\WireDirective) : ?>window.Livewire.find('<?php echo e($__livewire->getId()); ?>').entangle('<?php echo e('pay_amount'->value()); ?>')<?php echo e('pay_amount'->hasModifier('live') ? '.live' : ''); ?><?php else : ?>window.Livewire.find('<?php echo e($__livewire->getId()); ?>').entangle('<?php echo e('pay_amount'); ?>')<?php endif; ?>,
         total: <?php echo e((int) $totals['total']); ?>,
@@ -235,15 +236,60 @@
         </div>
 
         <!-- Ringkasan & Form Pembayaran (Posisi di Bawah Terus) -->
-        <div class="p-5 border-t border-line bg-white shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.05)]">
+        <div class="p-5 border-t border-line bg-white shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.05)] overflow-y-auto">
             
             <div class="mb-4">
-                <select wire:model="customer_id" class="input py-2.5 bg-canvas font-medium text-sm w-full">
-                    <option value="">-- Pilih Pelanggan (Opsional) --</option>
+                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($mode === 'optical'): ?>
+                    <label for="customerId" class="label text-[10px]">Pelanggan <span class="text-error">*</span></label>
+                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                <select id="customerId" wire:model="customer_id" class="input py-2.5 bg-canvas font-medium text-sm w-full" <?php echo e($mode === 'optical' ? 'required' : ''); ?>>
+                    <option value=""><?php echo e($mode === 'optical' ? '-- Pilih Pelanggan (Wajib) --' : '-- Pilih Pelanggan (Opsional) --'); ?></option>
                     <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $customers; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $c): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoopIteration(); ?><?php endif; ?>
                         <option value="<?php echo e($c->id); ?>"><?php echo e($c->name); ?> (<?php echo e($c->phone); ?>)</option>
                     <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                 </select>
+                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['customer_id'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-[10px] text-error"><?php echo e($message); ?></p> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+            </div>
+
+            <div class="mb-4 grid grid-cols-2 gap-3">
+                <div>
+                    <label for="discountPercent" class="label text-[10px]">Diskon transaksi</label>
+                    <div class="relative">
+                        <input
+                            id="discountPercent"
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.01"
+                            wire:model.live.debounce.300ms="discount_percent"
+                            class="input py-2 pr-8 text-sm"
+                            placeholder="0"
+                        >
+                        <span class="absolute inset-y-0 right-3 flex items-center text-xs text-text-muted">%</span>
+                    </div>
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['discount_percent'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-[10px] text-error"><?php echo e($message); ?></p> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                </div>
+                <label class="flex items-center gap-2 rounded-xl border border-line bg-canvas px-3 py-2.5 text-xs font-semibold text-text-main">
+                    <input type="checkbox" wire:model.live="apply_ppn" class="h-4 w-4 rounded border-line text-emerald focus:ring-emerald/20">
+                    <span>
+                        <span class="block">PPN 11%</span>
+                        <span class="block text-[10px] font-normal text-text-secondary">Opsional</span>
+                    </span>
+                </label>
             </div>
 
             <!-- Pesanan Optik Fields -->
@@ -260,8 +306,30 @@
                 </div>
             <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
-            <!-- Ringkasan Total (Big Display) -->
-            <div class="flex items-end justify-between mb-4 border-b border-line pb-4">
+            <div class="mb-4 space-y-1.5 border-y border-line py-3 text-xs">
+                <div class="flex justify-between text-text-secondary">
+                    <span>Subtotal</span>
+                    <span>Rp <?php echo e(number_format($totals['subtotal'], 0, ',', '.')); ?></span>
+                </div>
+                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($totals['item_discount'] > 0): ?>
+                    <div class="flex justify-between text-text-secondary">
+                        <span>Diskon item</span>
+                        <span>- Rp <?php echo e(number_format($totals['item_discount'], 0, ',', '.')); ?></span>
+                    </div>
+                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                <div class="flex justify-between text-text-secondary">
+                    <span>Diskon transaksi (<?php echo e(number_format((float) $discount_percent, 2, ',', '.')); ?>%)</span>
+                    <span>- Rp <?php echo e(number_format($totals['transaction_discount'], 0, ',', '.')); ?></span>
+                </div>
+                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($apply_ppn): ?>
+                    <div class="flex justify-between font-medium text-emerald-dark">
+                        <span>PPN (11%)</span>
+                        <span>+ Rp <?php echo e(number_format($totals['ppn_amount'], 0, ',', '.')); ?></span>
+                    </div>
+                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+            </div>
+
+            <div class="flex items-end justify-between mb-4">
                 <div>
                     <div class="text-sm text-text-secondary mb-1">Total Tagihan</div>
                     <div class="text-3xl font-bold text-text-main">
@@ -272,104 +340,83 @@
             </div>
 
             <!-- Perhitungan Pembayaran (Instant via Alpine.js) -->
-            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($mode === 'sale'): ?>
-                <div class="grid grid-cols-2 gap-3 mb-4">
-                    <label class="flex items-center justify-center gap-2 p-3 rounded-xl border border-line bg-canvas hover:border-emerald cursor-pointer transition-colors has-[:checked]:bg-emerald-bg has-[:checked]:border-emerald has-[:checked]:text-emerald-dark">
+            <div class="mb-4">
+                <p class="label text-[10px]"><?php echo e($mode === 'sale' ? 'Metode pembayaran' : 'Metode pembayaran DP'); ?></p>
+                <div class="grid grid-cols-2 gap-2">
+                    <label class="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-line bg-canvas hover:border-emerald cursor-pointer transition-colors has-[:checked]:bg-emerald-bg has-[:checked]:border-emerald has-[:checked]:text-emerald-dark">
                         <input type="radio" wire:model="payment_method" value="cash" class="sr-only">
-                        <?php if (isset($component)) { $__componentOriginalce262628e3a8d44dc38fd1f3965181bc = $component; } ?>
-<?php if (isset($attributes)) { $__attributesOriginalce262628e3a8d44dc38fd1f3965181bc = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.icon','data' => ['name' => 'cash','class' => 'w-5 h-5']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
-<?php $component->withName('icon'); ?>
-<?php if ($component->shouldRender()): ?>
-<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
-<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
-<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
-<?php endif; ?>
-<?php $component->withAttributes(['name' => 'cash','class' => 'w-5 h-5']); ?>
-<?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
-
-<?php echo $__env->renderComponent(); ?>
-<?php endif; ?>
-<?php if (isset($__attributesOriginalce262628e3a8d44dc38fd1f3965181bc)): ?>
-<?php $attributes = $__attributesOriginalce262628e3a8d44dc38fd1f3965181bc; ?>
-<?php unset($__attributesOriginalce262628e3a8d44dc38fd1f3965181bc); ?>
-<?php endif; ?>
-<?php if (isset($__componentOriginalce262628e3a8d44dc38fd1f3965181bc)): ?>
-<?php $component = $__componentOriginalce262628e3a8d44dc38fd1f3965181bc; ?>
-<?php unset($__componentOriginalce262628e3a8d44dc38fd1f3965181bc); ?>
-<?php endif; ?>
-                        <span class="font-semibold text-sm">Tunai</span>
+                        <span class="font-semibold text-xs">Tunai</span>
                     </label>
-                    <label class="flex items-center justify-center gap-2 p-3 rounded-xl border border-line bg-canvas hover:border-emerald cursor-pointer transition-colors has-[:checked]:bg-emerald-bg has-[:checked]:border-emerald has-[:checked]:text-emerald-dark">
-                        <input type="radio" wire:model="payment_method" value="non_cash" class="sr-only">
-                        <?php if (isset($component)) { $__componentOriginalce262628e3a8d44dc38fd1f3965181bc = $component; } ?>
-<?php if (isset($attributes)) { $__attributesOriginalce262628e3a8d44dc38fd1f3965181bc = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.icon','data' => ['name' => 'credit-card','class' => 'w-5 h-5']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
-<?php $component->withName('icon'); ?>
-<?php if ($component->shouldRender()): ?>
-<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
-<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
-<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
-<?php endif; ?>
-<?php $component->withAttributes(['name' => 'credit-card','class' => 'w-5 h-5']); ?>
-<?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
-
-<?php echo $__env->renderComponent(); ?>
-<?php endif; ?>
-<?php if (isset($__attributesOriginalce262628e3a8d44dc38fd1f3965181bc)): ?>
-<?php $attributes = $__attributesOriginalce262628e3a8d44dc38fd1f3965181bc; ?>
-<?php unset($__attributesOriginalce262628e3a8d44dc38fd1f3965181bc); ?>
-<?php endif; ?>
-<?php if (isset($__componentOriginalce262628e3a8d44dc38fd1f3965181bc)): ?>
-<?php $component = $__componentOriginalce262628e3a8d44dc38fd1f3965181bc; ?>
-<?php unset($__componentOriginalce262628e3a8d44dc38fd1f3965181bc); ?>
-<?php endif; ?>
-                        <span class="font-semibold text-sm">Non-Tunai</span>
+                    <label class="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-line bg-canvas hover:border-emerald cursor-pointer transition-colors has-[:checked]:bg-emerald-bg has-[:checked]:border-emerald has-[:checked]:text-emerald-dark">
+                        <input type="radio" wire:model="payment_method" value="transfer" class="sr-only">
+                        <span class="font-semibold text-xs">Transfer</span>
+                    </label>
+                    <label class="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-line bg-canvas hover:border-emerald cursor-pointer transition-colors has-[:checked]:bg-emerald-bg has-[:checked]:border-emerald has-[:checked]:text-emerald-dark">
+                        <input type="radio" wire:model="payment_method" value="qris" class="sr-only">
+                        <span class="font-semibold text-xs">QRIS</span>
+                    </label>
+                    <label class="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-line bg-canvas hover:border-emerald cursor-pointer transition-colors has-[:checked]:bg-emerald-bg has-[:checked]:border-emerald has-[:checked]:text-emerald-dark">
+                        <input type="radio" wire:model="payment_method" value="card" class="sr-only">
+                        <span class="font-semibold text-xs">Kartu</span>
                     </label>
                 </div>
+            </div>
 
-               <div class="mb-4">
-    <label for="payAmount" class="label">Jumlah Uang Diterima</label>
+            <div class="mb-4">
+                <label for="cashAccountId" class="label">Masuk ke kas</label>
+                <select id="cashAccountId" wire:model="cash_account_id" class="input py-2.5 text-sm">
+                    <option value="">Pilih akun kas</option>
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $cashAccounts; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $account): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoopIteration(); ?><?php endif; ?>
+                        <option value="<?php echo e($account->id); ?>"><?php echo e($account->name); ?> (<?php echo e($account->type === 'cash' ? 'Tunai' : 'Bank'); ?>)</option>
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
+                </select>
+                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['cash_account_id'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <p class="mt-1 text-[10px] text-error"><?php echo e($message); ?></p> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+            </div>
 
-    <!-- Input dengan prefix Rp, format ribuan otomatis -->
-    <div class="relative">
-        <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-lg font-bold text-emerald-dark/70 pointer-events-none">Rp</span>
-        <input
-            id="payAmount"
-            type="text"
-            inputmode="numeric"
-            autocomplete="off"
-            class="input pl-12 py-3 text-lg font-bold text-emerald-dark bg-emerald-bg/50 focus:bg-white text-right tabular-nums"
-            placeholder="0"
-            :value="payAmount ? new Intl.NumberFormat('id-ID').format(payAmount) : ''"
-            @input="
-                payAmount = parseInt($event.target.value.replace(/\D/g, '')) || 0;
-                $event.target.value = payAmount ? new Intl.NumberFormat('id-ID').format(payAmount) : '';
-            "
-            @focus="$event.target.select()"
-        >
-    </div>
+            <div class="mb-4">
+                <label for="payAmount" class="label"><?php echo e($mode === 'sale' ? 'Jumlah uang diterima' : 'DP yang diterima (opsional)'); ?></label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-lg font-bold text-emerald-dark/70 pointer-events-none">Rp</span>
+                    <input
+                        id="payAmount"
+                        type="text"
+                        inputmode="numeric"
+                        autocomplete="off"
+                        class="input pl-12 py-3 text-lg font-bold text-emerald-dark bg-emerald-bg/50 focus:bg-white text-right tabular-nums"
+                        placeholder="0"
+                        :value="payAmount ? new Intl.NumberFormat('id-ID').format(payAmount) : ''"
+                        @input="
+                            payAmount = parseInt($event.target.value.replace(/\D/g, '')) || 0;
+                            $event.target.value = payAmount ? new Intl.NumberFormat('id-ID').format(payAmount) : '';
+                        "
+                        @focus="$event.target.select()"
+                    >
+                </div>
 
-    <!-- Tombol nominal cepat -->
-    <div class="mt-2 flex flex-wrap gap-1.5">
-        <button type="button" class="btn-ghost !px-3 !py-1.5 text-xs" @click="payAmount = total">Uang pas</button>
-        <template x-for="nominal in [50000, 100000, 200000]" :key="nominal">
-            <button type="button" class="btn-ghost !px-3 !py-1.5 text-xs"
-                    @click="payAmount = nominal"
-                    x-text="new Intl.NumberFormat('id-ID').format(nominal)"></button>
-        </template>
-        <button type="button" class="btn-ghost !px-3 !py-1.5 text-xs ml-auto" @click="payAmount = 0">Reset</button>
-    </div>
+                <div class="mt-2 flex flex-wrap gap-1.5">
+                    <button type="button" class="btn-ghost !px-3 !py-1.5 text-xs" @click="payAmount = total">Uang pas</button>
+                    <template x-for="nominal in [50000, 100000, 200000]" :key="nominal">
+                        <button type="button" class="btn-ghost !px-3 !py-1.5 text-xs"
+                                @click="payAmount = nominal"
+                                x-text="new Intl.NumberFormat('id-ID').format(nominal)"></button>
+                    </template>
+                    <button type="button" class="btn-ghost !px-3 !py-1.5 text-xs ml-auto" @click="payAmount = 0">Reset</button>
+                </div>
 
-    <!-- Kembalian / kurang -->
-    <div class="mt-3 text-sm font-medium flex justify-between px-1"
-         :class="payAmount === 0 ? 'text-text-secondary' : (payAmount < total ? 'text-error' : 'text-emerald')">
-        <span x-text="payAmount > 0 && payAmount < total ? 'Kurang:' : 'Kembalian:'"></span>
-        <span class="font-bold tabular-nums"
-              x-text="formatRupiah(payAmount > 0 && payAmount < total ? total - payAmount : change)"></span>
-    </div>
-</div>
-            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                <div class="mt-3 text-sm font-medium flex justify-between px-1"
+                     :class="payAmount === 0 ? 'text-text-secondary' : (payAmount < total ? 'text-error' : 'text-emerald')">
+                    <span x-text="payAmount > 0 && payAmount < total ? 'Kurang:' : 'Kembalian:'"></span>
+                    <span class="font-bold tabular-nums"
+                          x-text="formatRupiah(payAmount > 0 && payAmount < total ? total - payAmount : change)"></span>
+                </div>
+            </div>
 
             <button wire:click="checkout"
                 class="btn-primary w-full py-4 text-lg shadow-lg <?php echo e(count($cartDetailed) === 0 ? 'opacity-50 cursor-not-allowed' : ''); ?>"

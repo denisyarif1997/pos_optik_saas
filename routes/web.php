@@ -152,6 +152,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/print/optical-orders/{id}', [PrintController::class, 'opticalOrder'])->name('print.optical-order');
         Route::get('/print/prescriptions/{id}', [PrintController::class, 'prescription'])->name('print.prescription');
         Route::get('/export/sales', [ExportController::class, 'sales'])->name('export.sales')->middleware('store.role:owner');
+        Route::get('/export/transactions', [ExportController::class, 'transactions'])->name('export.transactions')->middleware('store.role:owner');
         Route::get('/export/stock', [ExportController::class, 'stock'])->name('export.stock')->middleware('store.role:owner,stok');
         Route::get('/export/stock-opname', [ExportController::class, 'stockOpname'])->name('export.stock-opname')->middleware('store.role:owner,stok');
     });

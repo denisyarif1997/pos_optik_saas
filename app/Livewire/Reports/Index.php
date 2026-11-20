@@ -183,14 +183,31 @@ class Index extends Component
         $dailyTrend = array_values($dailyMap);
 
         // Transaction detail (recent 50 combined)
+        // Aggregate cash-account names and receiver names per sale
+        $salePaymentMeta = DB::table('payments')
+            ->where('payments.store_id', $storeId)
+            ->whereDate('payments.paid_at', '>=', $this->from)
+            ->whereDate('payments.paid_at', '<=', $this->to)
+            ->leftJoin('cash_accounts', 'cash_accounts.id', '=', 'payments.cash_account_id')
+            ->leftJoin('users as recv', 'recv.id', '=', 'payments.received_by')
+            ->select(
+                'payments.sale_id',
+                DB::raw("GROUP_CONCAT(DISTINCT cash_accounts.name ORDER BY cash_accounts.name SEPARATOR ', ') as cash_names"),
+                DB::raw("GROUP_CONCAT(DISTINCT recv.name ORDER BY recv.name SEPARATOR ', ') as receiver_names"),
+            )
+            ->groupBy('payments.sale_id')
+            ->get()
+            ->keyBy('sale_id');
+
         $saleTransactions = (clone $salesWithReturns)
             ->select('sales.*', DB::raw("{$refundExpression} as refund_total"))
-            ->with('customer')
+            ->with('customer', 'cashier')
             ->orderByDesc('sales.sold_at')
             ->limit(50)
             ->get()
-            ->map(function (Sale $sale): array {
+            ->map(function (Sale $sale) use ($salePaymentMeta): array {
                 $refund = (float) $sale->refund_total;
+                $meta = $salePaymentMeta->get($sale->id);
 
                 return [
                     'type' => 'Penjualan',
@@ -200,23 +217,45 @@ class Index extends Component
                     'total' => max(0, (float) $sale->total - $refund),
                     'paid' => max(0, (float) $sale->paid_total - $refund),
                     'status' => $sale->payment_status,
+                    'cash_name' => $meta?->cash_names ?? '-',
+                    'processed_by' => $sale->cashier?->name ?? ($meta?->receiver_names ?? '-'),
                 ];
             });
+
+        // Aggregate cash-account names and receiver names per optical order
+        $opticalPaymentMeta = DB::table('optical_order_payments')
+            ->where('optical_order_payments.store_id', $storeId)
+            ->leftJoin('cash_accounts', 'cash_accounts.id', '=', 'optical_order_payments.cash_account_id')
+            ->leftJoin('users as recv', 'recv.id', '=', 'optical_order_payments.received_by')
+            ->select(
+                'optical_order_payments.optical_order_id',
+                DB::raw("GROUP_CONCAT(DISTINCT cash_accounts.name ORDER BY cash_accounts.name SEPARATOR ', ') as cash_names"),
+                DB::raw("GROUP_CONCAT(DISTINCT recv.name ORDER BY recv.name SEPARATOR ', ') as receiver_names"),
+            )
+            ->groupBy('optical_order_payments.optical_order_id')
+            ->get()
+            ->keyBy('optical_order_id');
 
         $opticalTransactions = $opticalQ
             ->with('customer')
             ->orderByDesc('taken_at')
             ->limit(50)
             ->get()
-            ->map(fn ($o) => [
-                'type' => 'Optical',
-                'code' => $o->code,
-                'date' => $o->taken_at,
-                'customer' => $o->customer?->name ?? 'Umum',
-                'total' => (float) $o->total,
-                'paid' => (float) $o->dp_total,
-                'status' => $o->status,
-            ]);
+            ->map(function ($o) use ($opticalPaymentMeta): array {
+                $meta = $opticalPaymentMeta->get($o->id);
+
+                return [
+                    'type' => 'Optical',
+                    'code' => $o->code,
+                    'date' => $o->taken_at,
+                    'customer' => $o->customer?->name ?? 'Umum',
+                    'total' => (float) $o->total,
+                    'paid' => (float) $o->dp_total,
+                    'status' => $o->status,
+                    'cash_name' => $meta?->cash_names ?? '-',
+                    'processed_by' => $meta?->receiver_names ?? '-',
+                ];
+            });
 
         $recentTransactions = $saleTransactions->concat($opticalTransactions)
             ->sortByDesc(fn ($t) => $t['date'])
