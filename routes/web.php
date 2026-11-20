@@ -27,6 +27,7 @@ use App\Livewire\Pos\Cashier;
 use App\Livewire\Prescriptions\Form as PrescriptionForm;
 use App\Livewire\Products\Adjust as ProductAdjust;
 use App\Livewire\Products\Form as ProductForm;
+use App\Livewire\Products\Import as ProductImport;
 use App\Livewire\Products\Index as ProductIndex;
 use App\Livewire\Purchases\Index as PurchaseIndex;
 use App\Livewire\Reports\Index as ReportIndex;
@@ -99,6 +100,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/products/create', ProductForm::class)->name('products.create')->middleware('store.role:owner,stok');
         Route::get('/products/{id}/edit', ProductForm::class)->name('products.edit')->middleware('store.role:owner,stok');
         Route::get('/products/{id}/adjust', ProductAdjust::class)->name('products.adjust')->middleware('store.role:owner,stok');
+        Route::get('/products/import', ProductImport::class)->name('products.import')->middleware('store.role:owner,stok');
 
         Route::get('/customers', CustomerIndex::class)->name('customers.index');
         Route::get('/customers/create', CustomerForm::class)->name('customers.create');

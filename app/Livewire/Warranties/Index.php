@@ -15,14 +15,18 @@ class Index extends Component
     #[Validate('required|integer')]
     public ?int $customer_id = null;
 
-    #[Validate('nullable|integer')]
+    #[Validate('required|integer|exists:sales,id')]
     public ?int $sale_id = null;
+
+    public string $sale_code = '';
 
     #[Validate('nullable|date')]
     public ?string $valid_until = null;
 
     #[Validate('nullable|string')]
     public string $claim_notes = '';
+
+    public ?Sale $sale = null;
 
     public function nextCode(int $storeId): string
     {
@@ -41,6 +45,29 @@ class Index extends Component
         return $id > 0 ? (int) substr((string) $id, -4) : 0;
     }
 
+    public function findSale(): void
+    {
+        $storeId = app('activeStore')->id();
+        abort_unless($storeId, 403);
+
+        $this->sale = null;
+        $this->sale_id = null;
+
+        $sale = Sale::forStore($storeId)->where('code', trim($this->sale_code))->first();
+        if (! $sale) {
+            $this->addError('sale_code', 'Nota tidak ditemukan diTokomu.');
+
+            return;
+        }
+
+        $this->sale = $sale;
+        $this->sale_id = $sale->id;
+
+        if (! $this->customer_id) {
+            $this->customer_id = $sale->customer_id;
+        }
+    }
+
     public function save(): void
     {
         $this->validate();
@@ -48,9 +75,7 @@ class Index extends Component
         abort_unless($storeId, 403);
 
         $customer = Customer::forStore($storeId)->findOrFail($this->customer_id);
-        if ($this->sale_id) {
-            Sale::forStore($storeId)->findOrFail($this->sale_id);
-        }
+        $sale = Sale::forStore($storeId)->findOrFail($this->sale_id);
 
         Warranty::create([
             'store_id' => $storeId,
@@ -62,7 +87,7 @@ class Index extends Component
             'status' => 'active',
         ]);
 
-        $this->reset(['sale_id', 'claim_notes']);
+        $this->reset(['sale_id', 'sale_code', 'sale', 'valid_until', 'claim_notes']);
         session()->flash('success', 'Garansi diterbitkan.');
     }
 
@@ -81,7 +106,8 @@ class Index extends Component
 
         return view('livewire.warranties.index', [
             'customers' => Customer::forStore($storeId)->where('is_active', true)->orderBy('name')->limit(200)->get(),
-            'warranties' => Warranty::forStore($storeId)->latest()->limit(20)->get(),
+            'warranties' => Warranty::forStore($storeId)->with('sale')->latest()->limit(20)->get(),
+            'sale' => $this->sale,
         ])->title('Garansi');
     }
 }

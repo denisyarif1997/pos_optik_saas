@@ -2,6 +2,7 @@
     <x-page-header title="Produk & Stok" description="{{ $lowCount }} produk stok menipis • hanya data toko Anda">
         <x-slot:actions>
             <a href="{{ route('products.create') }}" wire:navigate class="btn-primary px-4 py-2 text-sm">+ Tambah Produk</a>
+            <a href="{{ route('products.import') }}" wire:navigate class="btn-ghost px-4 py-2 text-sm text-xs border">⬇ Impor CSV</a>
             <a href="{{ route('export.stock') }}" class="btn-ghost px-4 py-2 text-sm text-xs">⬇ Ekspor CSV</a>
         </x-slot:actions>
     </x-page-header>

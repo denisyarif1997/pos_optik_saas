@@ -35,14 +35,15 @@
 
             <div class="grid sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="label">ID Nota Penjualan (Opsional)</label>
+                    <label class="label">Kode Nota Penjualan <span class="text-error">*</span></label>
                     <input type="number"
                            wire:model="sale_id"
-                           placeholder="Nomor ID nota"
+                           placeholder="ID nota penjualan"
                            class="input @error('sale_id') border-error @enderror">
                     @error('sale_id')
                         <p class="text-[11px] text-error mt-1">{{ $message }}</p>
                     @enderror
+                    <p class="text-[11px] text-text-muted mt-1">Garansi hanya dapat diterbitkan jika nota penjualan sudah ada.</p>
                 </div>
 
                 <div>

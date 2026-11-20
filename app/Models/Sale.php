@@ -47,6 +47,11 @@ class Sale extends Model
         return $this->hasMany(ReturnModel::class);
     }
 
+    public function warranty(): HasOne
+    {
+        return $this->hasOne(Warranty::class);
+    }
+
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);

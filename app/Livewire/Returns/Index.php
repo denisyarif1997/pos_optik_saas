@@ -5,13 +5,18 @@ namespace App\Livewire\Returns;
 use App\Models\ReturnModel;
 use App\Models\Sale;
 use App\Services\ReturnService;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 #[Layout('components.layouts.app')]
 class Index extends Component
 {
+    use WithPagination;
+
     public string $code = '';
 
     public ?int $sale_id = null;
@@ -23,6 +28,85 @@ class Index extends Component
 
     public string $reason = '';
 
+    // Filter datatable
+    public string $search = '';
+
+    public string $from = '';
+
+    public string $to = '';
+
+    public string $status = '';
+
+    private const PRESETS = ['today', '7d', '30d', 'all'];
+
+    public function mount(): void
+    {
+        $this->setRange('30d');
+    }
+
+    public function updated(string $name): void
+    {
+        if (in_array($name, ['search', 'from', 'to', 'status'], true)) {
+            $this->resetPage();
+        }
+    }
+
+    public function setRange(string $preset): void
+    {
+        [$this->from, $this->to] = $this->rangeFor($preset);
+        $this->resetPage();
+    }
+
+    public function resetFilter(): void
+    {
+        $this->search = '';
+        $this->status = '';
+        $this->setRange('30d');
+    }
+
+    private function rangeFor(string $preset): array
+    {
+        $today = now()->toDateString();
+
+        return match ($preset) {
+            'today' => [$today, $today],
+            '7d' => [now()->subDays(6)->toDateString(), $today],
+            '30d' => [now()->subDays(29)->toDateString(), $today],
+            default => ['', ''],
+        };
+    }
+
+    private function activeRange(): string
+    {
+        foreach (self::PRESETS as $preset) {
+            if ($this->rangeFor($preset) === [$this->from, $this->to]) {
+                return $preset;
+            }
+        }
+
+        return '';
+    }
+
+    private function baseQuery(int $storeId): Builder
+    {
+        $from = $this->from;
+        $to = $this->to;
+
+        if ($from && $to && $from > $to) {
+            [$from, $to] = [$to, $from];
+        }
+
+        return ReturnModel::forStore($storeId)
+            ->with(['sale.customer', 'sale.items.product'])
+            ->when(trim($this->search) !== '', function ($q) {
+                $term = '%'.trim($this->search).'%';
+                $q->whereHas('sale', fn ($s) => $s->where('code', 'like', $term));
+            })
+            ->when($this->status, fn ($q) => $q->where('status', $this->status))
+            ->when($from, fn ($q) => $q->where('created_at', '>=', Carbon::parse($from)->startOfDay()))
+            ->when($to, fn ($q) => $q->where('created_at', '<=', Carbon::parse($to)->endOfDay()));
+    }
+
     public function findSale(): void
     {
         $storeId = app('activeStore')->id();
@@ -30,7 +114,7 @@ class Index extends Component
 
         $sale = Sale::forStore($storeId)->with('items.product')->where('code', $this->code)->first();
         if (! $sale) {
-            $this->addError('code', 'Nota tidak ditemukan di tokomu.');
+            $this->addError('code', 'Nota tidak ditemukan diTokomu.');
 
             return;
         }
@@ -54,9 +138,36 @@ class Index extends Component
 
         $sale = $this->sale_id ? Sale::forStore($storeId)->with('items.product')->find($this->sale_id) : null;
 
+        $base = $this->baseQuery($storeId);
+
+        // Ringkasan dihitung dari SELURUH hasil filter, bukan hanya halaman aktif
+        $row = (clone $base)->toBase()->selectRaw(
+            'COUNT(*) as cnt,
+             COALESCE(SUM(refund_amount), 0) as refund_total'
+        )->first();
+
+        $summary = [
+            'count' => (int) $row->cnt,
+            'refund' => (float) $row->refund_total,
+        ];
+
+        $returns = (clone $base)
+            ->latest('created_at')
+            ->latest('id')
+            ->paginate(15);
+
+        $statusOptions = ReturnModel::forStore($storeId)
+            ->whereNotNull('status')
+            ->distinct()
+            ->orderBy('status')
+            ->pluck('status');
+
         return view('livewire.returns.index', [
             'sale' => $sale,
-            'history' => ReturnModel::forStore($storeId)->with('sale')->latest()->limit(20)->get(),
-        ])->title('Retur');
+            'returns' => $returns,
+            'summary' => $summary,
+            'statusOptions' => $statusOptions,
+            'activeRange' => $this->activeRange(),
+        ])->title('Retur Penjualan');
     }
 }

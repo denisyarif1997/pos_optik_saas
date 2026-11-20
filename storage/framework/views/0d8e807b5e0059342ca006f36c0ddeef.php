@@ -13,6 +13,7 @@
 
          <?php $__env->slot('actions', null, []); ?> 
             <a href="<?php echo e(route('products.create')); ?>" wire:navigate class="btn-primary px-4 py-2 text-sm">+ Tambah Produk</a>
+            <a href="<?php echo e(route('products.import')); ?>" wire:navigate class="btn-ghost px-4 py-2 text-sm text-xs border">⬇ Impor CSV</a>
             <a href="<?php echo e(route('export.stock')); ?>" class="btn-ghost px-4 py-2 text-sm text-xs">⬇ Ekspor CSV</a>
          <?php $__env->endSlot(); ?>
      <?php echo $__env->renderComponent(); ?>

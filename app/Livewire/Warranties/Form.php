@@ -17,7 +17,7 @@ class Form extends Component
     #[Validate('required|integer')]
     public ?int $customer_id = null;
 
-    #[Validate('nullable|integer')]
+    #[Validate('required|integer|exists:sales,id')]
     public ?int $sale_id = null;
 
     #[Validate('nullable|date')]
@@ -70,9 +70,7 @@ class Form extends Component
         } else {
             $this->authorize('create', Warranty::class);
             $customer = Customer::forStore($storeId)->findOrFail($this->customer_id);
-            if ($this->sale_id) {
-                Sale::forStore($storeId)->findOrFail($this->sale_id);
-            }
+            Sale::forStore($storeId)->findOrFail($this->sale_id);
             $data['store_id'] = $storeId;
             $data['code'] = 'GRS-'.now()->format('Ymd').'-'.str_pad((string) (Warranty::forStore($storeId)->whereDate('created_at', today())->count() + 1), 4, '0', STR_PAD_LEFT);
             Warranty::create($data);
