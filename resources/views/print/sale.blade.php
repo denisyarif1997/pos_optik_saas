@@ -18,7 +18,11 @@
     <hr>
     <table>
         @foreach ($sale->items as $it)
-            <tr><td colspan="2">{{ $it->product?->name }} × {{ $it->qty }}</td><td class="right">{{ number_format($it->subtotal, 0, ',', '.') }}</td></tr>
+            @php
+                $returnedQty = (int) (($returnsByItem[$it->product_id]['qty'] ?? 0));
+                $remainingQty = (int) $it->qty - $returnedQty;
+            @endphp
+            <tr><td colspan="2">{{ $it->product?->name }} × {{ $remainingQty }} / {{ $it->qty }}</td><td class="right">{{ number_format($it->subtotal, 0, ',', '.') }}</td></tr>
         @endforeach
     </table>
     <hr>
@@ -30,7 +34,10 @@
         @if ($sale->ppn_amount > 0)
             <tr><td>PPN ({{ number_format($sale->ppn_rate, 0) }}%)</td><td class="right">{{ number_format($sale->ppn_amount, 0, ',', '.') }}</td></tr>
         @endif
-        <tr><td>Total</td><td class="right"><b>{{ number_format($sale->total, 0, ',', '.') }}</b></td></tr>
+        @if ($totalRefund > 0)
+            <tr><td>Retur</td><td class="right">-{{ number_format($totalRefund, 0, ',', '.') }}</td></tr>
+        @endif
+        <tr><td>Total</td><td class="right"><b>{{ number_format(max(0, (float) $sale->total - $totalRefund), 0, ',', '.') }}</b></td></tr>
         <tr><td>Bayar</td><td class="right">{{ number_format($sale->paid_total, 0, ',', '.') }}</td></tr>
         <tr><td>Status</td><td class="right">{{ $sale->payment_status }}</td></tr>
     </table>

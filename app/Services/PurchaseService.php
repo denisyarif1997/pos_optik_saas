@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Product;
 use App\Models\Purchase;
+use App\Models\StockLensMatrix;
 use App\Models\StockMovement;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -31,7 +32,8 @@ class PurchaseService
                 $buy = max(0, (float) ($row['buy_price'] ?? $product->cost_price));
                 $subtotal = $buy * $qty;
                 $total += $subtotal;
-                $lines[] = compact('product', 'qty', 'buy', 'subtotal');
+                $lines[] = compact('product', 'qty', 'buy', 'subtotal')
+                    + ['sph' => $row['sph'] ?? null, 'cyl' => $row['cyl'] ?? null, 'add_val' => $row['add_val'] ?? 0.00];
             }
 
             $purchase = Purchase::create([
@@ -48,6 +50,9 @@ class PurchaseService
                 $purchase->items()->create([
                     'store_id' => $storeId,
                     'product_id' => $line['product']->id,
+                    'sph' => $line['sph'],
+                    'cyl' => $line['cyl'],
+                    'add_val' => $line['add_val'],
                     'qty' => $line['qty'],
                     'buy_price' => $line['buy'],
                     'subtotal' => $line['subtotal'],
@@ -57,6 +62,31 @@ class PurchaseService
                 $line['product']->increment('stock', $line['qty']);
                 if ((float) $line['buy'] > 0) {
                     $line['product']->update(['cost_price' => $line['buy']]);
+                }
+
+                // Increment StockLensMatrix for lens items with SPH/CYL/ADD specs
+                if ($line['sph'] !== null && $line['cyl'] !== null) {
+                    $matrix = StockLensMatrix::forStore($storeId)
+                        ->where('product_id', $line['product']->id)
+                        ->where('sph', (float) $line['sph'])
+                        ->where('cyl', (float) $line['cyl'])
+                        ->where('add_val', (float) $line['add_val'])
+                        ->lockForUpdate()
+                        ->first();
+
+                    if ($matrix) {
+                        $matrix->increment('stock_qty', $line['qty']);
+                    } else {
+                        StockLensMatrix::create([
+                            'store_id' => $storeId,
+                            'product_id' => $line['product']->id,
+                            'sph' => (float) $line['sph'],
+                            'cyl' => (float) $line['cyl'],
+                            'add_val' => (float) $line['add_val'],
+                            'stock_qty' => $line['qty'],
+                            'min_stock_alert' => 2,
+                        ]);
+                    }
                 }
 
                 StockMovement::create([

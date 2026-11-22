@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Product;
 use App\Models\ReturnModel;
 use App\Models\Sale;
+use App\Models\StockLensMatrix;
 use App\Models\StockMovement;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -60,6 +61,31 @@ class ReturnService
             $product = Product::forStore($storeId)->lockForUpdate()->findOrFail($productId);
             $before = (int) $product->stock;
             $product->increment('stock', $qty);
+
+            // Increment StockLensMatrix for lens items with SPH/CYL/ADD specs
+            if ($item->sph !== null && $item->cyl !== null) {
+                $matrix = StockLensMatrix::forStore($storeId)
+                    ->where('product_id', $product->id)
+                    ->where('sph', (float) $item->sph)
+                    ->where('cyl', (float) $item->cyl)
+                    ->where('add_val', (float) $item->add_val)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($matrix) {
+                    $matrix->increment('stock_qty', $qty);
+                } else {
+                    StockLensMatrix::create([
+                        'store_id' => $storeId,
+                        'product_id' => $product->id,
+                        'sph' => (float) $item->sph,
+                        'cyl' => (float) $item->cyl,
+                        'add_val' => (float) $item->add_val,
+                        'stock_qty' => $qty,
+                        'min_stock_alert' => 2,
+                    ]);
+                }
+            }
 
             StockMovement::create([
                 'store_id' => $storeId,

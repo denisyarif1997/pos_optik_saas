@@ -12,7 +12,9 @@
 <?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
 
          <?php $__env->slot('actions', null, []); ?> 
-            <button wire:click="showForm = true" class="btn-primary px-4 py-2 text-sm">+ Tambah Kategori</button>
+            <!-- <button wire:click="showForm = true" class="btn-primary px-4 py-2 text-sm">+ Tambah Kategori</button> -->
+                        <a href="<?php echo e(route('categories.create')); ?>" wire:navigate class="btn-primary px-4 py-2 text-sm">+ Tambah Kategori Produk</a>
+
          <?php $__env->endSlot(); ?>
      <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>

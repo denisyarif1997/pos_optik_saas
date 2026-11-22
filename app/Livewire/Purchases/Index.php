@@ -29,7 +29,7 @@ class Index extends Component
                 return;
             }
         }
-        $this->cart[] = ['product_id' => $id, 'qty' => 1, 'buy_price' => 0];
+        $this->cart[] = ['product_id' => $id, 'qty' => 1, 'buy_price' => 0, 'sph' => null, 'cyl' => null, 'add_val' => 0.00];
     }
 
     public function removeRow(int $i): void
@@ -43,7 +43,14 @@ class Index extends Component
         $this->authorize('create', Purchase::class);
         $purchase = $purchases->create(auth()->user(), [
             'supplier_id' => $this->supplier_id,
-            'items' => $this->cart,
+            'items' => array_map(fn ($r) => [
+                'product_id' => $r['product_id'],
+                'qty' => $r['qty'],
+                'buy_price' => $r['buy_price'],
+                'sph' => $r['sph'],
+                'cyl' => $r['cyl'],
+                'add_val' => $r['add_val'],
+            ], $this->cart),
         ]);
 
         session()->flash('success', 'Pembelian '.$purchase->code.' tersimpan, stok bertambah.');

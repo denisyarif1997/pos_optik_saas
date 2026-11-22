@@ -116,15 +116,58 @@ class Index extends Component
         if (! $sale) {
             $this->addError('code', 'Nota tidak ditemukan diTokomu.');
 
+            $this->sale_id = null;
+            $this->product_id = null;
+            $this->qty = 1;
+            $this->reason = '';
+
             return;
         }
+
         $this->sale_id = $sale->id;
+        $this->product_id = null;
+        $this->qty = 1;
+        $this->reason = '';
+    }
+
+    public function updatedProductId(): void
+    {
+        $this->qty = 1;
+    }
+
+    public function remainingQty(int $productId): int
+    {
+        if (! $this->sale_id) {
+            return 0;
+        }
+
+        $storeId = app('activeStore')->id();
+
+        $item = Sale::forStore($storeId)->with('items')->find($this->sale_id)
+            ?->items->firstWhere('product_id', $productId);
+
+        if (! $item) {
+            return 0;
+        }
+
+        $already = (int) ReturnModel::forStore($storeId)
+            ->where('sale_id', $this->sale_id)
+            ->where('product_id', $productId)
+            ->sum('qty');
+
+        return max(0, (int) $item->qty - $already);
     }
 
     public function save(ReturnService $returns): void
     {
         $this->validate();
         $this->authorize('create', ReturnModel::class);
+
+        if ($this->product_id && $this->qty > $this->remainingQty($this->product_id)) {
+            $this->addError('qty', 'Melebihi sisa retur (maksimal '.$this->remainingQty($this->product_id).').');
+
+            return;
+        }
 
         $returns->create(auth()->user(), $this->sale_id, $this->product_id, $this->qty, $this->reason ?: null);
         session()->flash('success', 'Retur tersimpan, stok kembali bertambah.');
@@ -137,6 +180,18 @@ class Index extends Component
         abort_unless($storeId, 403);
 
         $sale = $this->sale_id ? Sale::forStore($storeId)->with('items.product')->find($this->sale_id) : null;
+
+        // Sisa qty yang masih dapat dikembalikan per produk (untuk batas input qty di form)
+        $returnable = [];
+        if ($sale) {
+            foreach ($sale->items as $it) {
+                $already = (int) ReturnModel::forStore($storeId)
+                    ->where('sale_id', $sale->id)
+                    ->where('product_id', $it->product_id)
+                    ->sum('qty');
+                $returnable[$it->product_id] = max(0, (int) $it->qty - $already);
+            }
+        }
 
         $base = $this->baseQuery($storeId);
 
@@ -168,6 +223,7 @@ class Index extends Component
             'summary' => $summary,
             'statusOptions' => $statusOptions,
             'activeRange' => $this->activeRange(),
+            'returnable' => $returnable,
         ])->title('Retur Penjualan');
     }
 }

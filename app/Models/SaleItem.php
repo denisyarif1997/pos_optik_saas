@@ -12,12 +12,19 @@ class SaleItem extends Model
     use BelongsToStore, HasFactory;
 
     protected $fillable = [
-        'store_id', 'sale_id', 'product_id', 'qty', 'price', 'discount', 'subtotal',
+        'store_id', 'sale_id', 'product_id', 'sph', 'cyl', 'add_val', 'qty', 'price', 'discount', 'subtotal',
     ];
 
     protected function casts(): array
     {
-        return ['price' => 'decimal:2', 'discount' => 'decimal:2', 'subtotal' => 'decimal:2'];
+        return [
+            'price' => 'decimal:2',
+            'discount' => 'decimal:2',
+            'subtotal' => 'decimal:2',
+            'sph' => 'decimal:2',
+            'cyl' => 'decimal:2',
+            'add_val' => 'decimal:2',
+        ];
     }
 
     public function sale(): BelongsTo

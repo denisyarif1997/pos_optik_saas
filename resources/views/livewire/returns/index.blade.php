@@ -37,15 +37,32 @@
         @if ($sale)
             <div class="rounded-lg bg-emerald-50/60 border border-emerald-100 p-4 text-sm">
                 <b>{{ $sale->code }}</b> • Rp {{ number_format($sale->total, 0, ',', '.') }}
-                <div class="mt-2 space-y-1">@foreach ($sale->items as $it)<div>• {{ $it->product?->name }} × {{ $it->qty }}</div>@endforeach</div>
+                <div class="mt-2 space-y-1">
+                    @foreach ($sale->items as $it)
+                    <div>
+                        • {{ $it->product?->name }} × {{ $it->qty }}
+                        <span class="text-xs text-slate-400 ml-1">(sisa retur: {{ $returnable[$it->product_id] ?? 0 }})</span>
+                    </div>
+                    @endforeach
+                </div>
             </div>
             <div class="grid grid-cols-2 gap-3">
                 <select wire:model="product_id" class="rounded-lg bg-slate-50 border border-emerald-100 px-3 py-2.5 text-sm">
                     <option value="">— Produk —</option>
                     @foreach ($sale->items as $it)<option value="{{ $it->product_id }}">{{ $it->product?->name }}</option>@endforeach
                 </select>
-                <input type="number" min="1" wire:model="qty" class="rounded-lg bg-slate-50 border border-emerald-100 px-3 py-2.5" placeholder="Qty">
+                @php
+                    $selectedRemaining = $this->product_id ? (int) ($returnable[$this->product_id] ?? 0) : null;
+                @endphp
+                <input type="number" min="1"
+                    @if ($selectedRemaining !== null && $selectedRemaining > 0) max="{{ $selectedRemaining }}" @endif
+                    wire:model="qty" class="rounded-lg bg-slate-50 border border-emerald-100 px-3 py-2.5" placeholder="Qty">
             </div>
+            @if ($this->product_id && $selectedRemaining === 0)
+                <p class="text-xs text-error">Produk ini sudah dikembalikan sepenuhnya.</p>
+            @elseif ($selectedRemaining !== null)
+                <p class="text-xs text-slate-400">Sisa dapat dikembalikan: {{ $selectedRemaining }}</p>
+            @endif
             <input type="text" wire:model="reason" placeholder="Alasan retur" class="w-full rounded-lg bg-slate-50 border border-emerald-100 px-4 py-2.5 text-sm">
             <button wire:click="save" class="w-full bg-slate-900 hover:bg-black text-white text-sm font-semibold">Simpan Retur →</button>
         @endif
@@ -112,7 +129,7 @@
                             @endphp
                             <tr wire:key="return-{{ $r->id }}" class="hover:bg-slate-50 transition-colors">
                                 <td class="py-3 px-4">
-                                    <div class="font-medium text-text-main">{{ $r->sale?->code ?? '-' }}</div>
+                                    <div class="font-medium text-text-main"><span class="text-text-secondary text-xs font-normal">No. Transaksi: </span>{{ $r->sale?->code ?? '-' }}</div>
                                     <p class="text-[11px] text-text-secondary">{{ $r->created_at->translatedFormat('d M Y, H:i') }}</p>
                                 </td>
                                 <td class="py-3 px-4 text-[11px] text-text-main">{{ $r->sale->customer?->name ?? '-' }}</td>

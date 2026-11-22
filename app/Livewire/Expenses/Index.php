@@ -22,6 +22,8 @@ class Index extends Component
     #[Validate('required|numeric|min:1')]
     public float $amount = 0;
 
+    public bool $showForm = false;
+
     public function mount(): void
     {
         $this->spent_at = now()->format('Y-m-d');

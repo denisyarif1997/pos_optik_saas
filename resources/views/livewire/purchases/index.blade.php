@@ -14,11 +14,47 @@
             </div>
         @endif
         @foreach ($detailed as $row)
-            <div class="grid grid-cols-12 gap-2 items-center text-sm rounded-lg bg-slate-50 border border-emerald-100 px-3 py-2">
-                <span class="col-span-5 font-bold truncate">{{ $row['product']->name }}</span>
-                <input type="number" min="1" wire:model.live="cart.{{ $row['index'] }}.qty" class="col-span-2 rounded-xl border border-emerald-100 px-2 py-1.5">
-                <input type="number" min="0" wire:model.live="cart.{{ $row['index'] }}.buy_price" placeholder="Harga beli" class="col-span-4 rounded-xl border border-emerald-100 px-2 py-1.5">
-                <button wire:click="removeRow({{ $row['index'] }})" class="col-span-1 text-red-500 font-bold">×</button>
+            <div class="bg-slate-50 border border-emerald-100 rounded-lg p-2 text-sm">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="font-bold truncate flex-1">{{ $row['product']->name }}</span>
+                    <span class="text-xs text-slate-500">qty <span class="font-medium">{{ $row['qty'] }}</span></span>
+                    <span class="text-xs text-slate-500">harga beli Rp {{ number_format($row['buy_price'], 0, ',', '.') }}</span>
+                    <button wire:click="removeRow({{ $row['index'] }})" class="text-red-500 font-bold">×</button>
+                </div>
+                @if (in_array($row['product']->type, ['STOCK_LENS', 'CONTACT_LENS']))
+                    <div class="grid grid-cols-3 gap-2 mb-1">
+                        <div>
+                            <label class="block text-[10px] text-text-secondary mb-1">SPH</label>
+                            <input type="number" step="0.25"
+                                wire:model.live="cart.{{ $row['index'] }}.sph"
+                                placeholder="SPH"
+                                class="input text-[11px] py-1.5 text-center @error('cart.{{ $row['index'] }}.sph') border-error @enderror"/>
+                            @error('cart.{{ $row['index'] }}.sph')
+                                <p class="mt-1 text-[10px] text-error">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-text-secondary mb-1">CYL</label>
+                            <input type="number" step="0.25"
+                                wire:model.live="cart.{{ $row['index'] }}.cyl"
+                                placeholder="CYL"
+                                class="input text-[11px] py-1.5 text-center @error('cart.{{ $row['index'] }}.cyl') border-error @enderror"/>
+                            @error('cart.{{ $row['index'] }}.cyl')
+                                <p class="mt-1 text-[10px] text-error">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-text-secondary mb-1">ADD</label>
+                            <input type="number" step="0.25"
+                                wire:model.live="cart.{{ $row['index'] }}.add_val"
+                                placeholder="ADD"
+                                class="input text-[11px] py-1.5 text-center @error('cart.{{ $row['index'] }}.add_val') border-error @enderror"/>
+                            @error('cart.{{ $row['index'] }}.add_val')
+                                <p class="mt-1 text-[10px] text-error">{{ $message }}</p>
+                            @enderror
+                        </div>
+                    </div>
+                @endif
             </div>
         @endforeach
         <div class="flex items-center justify-between font-semibold"><span>Total</span><span class="text-emerald-700">Rp {{ number_format($total, 0, ',', '.') }}</span></div>

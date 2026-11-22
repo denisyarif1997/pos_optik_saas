@@ -46,4 +46,14 @@ class CashAccount extends Model
     {
         return $this->hasMany(OpticalOrderPayment::class);
     }
+
+    public function cashIns(): HasMany
+    {
+        return $this->hasMany(CashIn::class);
+    }
+
+    public function expenses(): HasMany
+    {
+        return $this->hasMany(Expense::class);
+    }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Expenses;
 
+use App\Models\CashAccount;
 use App\Models\Expense;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Validate;
@@ -24,22 +25,42 @@ class Form extends Component
     #[Validate('required|numeric|min:1')]
     public float $amount = 0;
 
+    public ?int $cashAccountId = null;
+
+    public string $cashAccountName = '';
+
+    // Cash account options for the dropdown
+    public array $cashAccountOptions = [];
+
     public function mount(?int $id = null): void
     {
         $storeId = app('activeStore')->id();
         abort_unless($storeId, 403);
 
+        // Load cash accounts for this store
+        $accounts = CashAccount::forStore($storeId)->active()->orderBy('name')->get();
+        $this->cashAccountOptions = $accounts->pluck('name', 'id')->toArray();
+
         if ($id) {
             $e = Expense::forStore($storeId)->findOrFail($id);
-            $this->authorize('update', $e);
             $this->expenseId = $e->id;
             $this->spent_at = $e->spent_at->format('Y-m-d');
             $this->category = $e->category;
             $this->description = $e->description;
             $this->amount = (float) $e->amount;
+            // Set cash account if exists
+            if ($e->cash_account_id) {
+                $this->cashAccountId = $e->cash_account_id;
+                $this->cashAccountName = $e->cashAccount->name ?? '';
+            }
         } else {
-            $this->authorize('create', Expense::class);
             $this->spent_at = now()->format('Y-m-d');
+            // Set default cash account (Kas Toko) if available
+            $defaultAccount = CashAccount::forStore($storeId)->where('type', 'cash')->first();
+            if ($defaultAccount) {
+                $this->cashAccountId = $defaultAccount->id;
+                $this->cashAccountName = $defaultAccount->name;
+            }
         }
     }
 
@@ -49,7 +70,13 @@ class Form extends Component
         $storeId = app('activeStore')->id();
         abort_unless($storeId, 403);
 
-        $data = ['spent_at' => $this->spent_at, 'category' => $this->category, 'description' => $this->description, 'amount' => $this->amount];
+        $data = [
+            'spent_at' => $this->spent_at,
+            'category' => $this->category,
+            'description' => $this->description,
+            'amount' => $this->amount,
+            'cash_account_id' => $this->cashAccountId,
+        ];
 
         if ($this->expenseId) {
             $e = Expense::forStore($storeId)->findOrFail($this->expenseId);

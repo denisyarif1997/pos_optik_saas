@@ -6,6 +6,7 @@ use App\Models\CashAccount;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\Sale;
+use App\Models\StockLensMatrix;
 use App\Models\StockMovement;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -68,7 +69,8 @@ class SaleService
 
                 $subtotal += $gross;
                 $itemDiscountTotal += $discount;
-                $lines[] = compact('product', 'qty', 'price', 'discount', 'lineSubtotal');
+                $lines[] = compact('product', 'qty', 'price', 'discount', 'lineSubtotal')
+                    + ['sph' => $row['sph'] ?? null, 'cyl' => $row['cyl'] ?? null, 'add_val' => $row['add_val'] ?? 0.00];
             }
 
             $totals = CheckoutTotals::calculate($subtotal, $itemDiscountTotal, $discountPercent, $ppnRate);
@@ -100,6 +102,9 @@ class SaleService
                 $sale->items()->create([
                     'store_id' => $storeId,
                     'product_id' => $line['product']->id,
+                    'sph' => $line['sph'],
+                    'cyl' => $line['cyl'],
+                    'add_val' => $line['add_val'],
                     'qty' => $line['qty'],
                     'price' => $line['price'],
                     'discount' => $line['discount'],
@@ -108,6 +113,22 @@ class SaleService
 
                 $before = (int) $line['product']->stock;
                 $line['product']->decrement('stock', $line['qty']);
+
+                // Decrement StockLensMatrix for lens items with SPH/CYL/ADD specs
+                if ($line['sph'] !== null && $line['cyl'] !== null) {
+                    $matrix = StockLensMatrix::forStore($storeId)
+                        ->where('product_id', $line['product']->id)
+                        ->where('sph', (float) $line['sph'])
+                        ->where('cyl', (float) $line['cyl'])
+                        ->where('add_val', (float) $line['add_val'])
+                        ->where('stock_qty', '>', 0)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if ($matrix) {
+                        $matrix->decrement('stock_qty', $line['qty']);
+                    }
+                }
 
                 StockMovement::create([
                     'store_id' => $storeId,

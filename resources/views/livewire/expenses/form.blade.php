@@ -10,6 +10,18 @@
 
     <div class="card p-6 bg-surface border border-line shadow-card rounded-2xl space-y-5">
         <div class="flex items-center gap-3 pb-3 border-b border-line">
+<div>
+                <label class="label">Akun Kas <span class="text-error">*</span></label>
+                <select wire:model="cashAccountId" class="input @error('cashAccountId') border-error @enderror">
+                    <option value="">-- Pilih Akun Kas --</option>
+                    @foreach ($cashAccountOptions as $id => $name)
+                        <option value="{{ $id }}" {{ $cashAccountId == $id ? 'selected' : '' }}>{{ $name }}</option>
+                    @endforeach
+                </select>
+                @error('cashAccountId')
+                    <p class="text-[11px] text-error mt-1 flex items-center gap-1">{{ $message }}</p>
+                @enderror
+            </div>
             <div class="w-10 h-10 rounded-xl bg-emerald-bg text-emerald flex items-center justify-center border border-emerald-soft flex-shrink-0">
                 <x-icon name="wallet" class="w-5 h-5" />
             </div>

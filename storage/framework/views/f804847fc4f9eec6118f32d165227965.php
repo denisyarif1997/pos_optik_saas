@@ -67,7 +67,8 @@
                                 <td class="px-3 py-3 border-r border-slate-100 <?php echo e($bgClass); ?> transition group">
                                     <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($isEditing): ?>
                                         <div class="flex items-center justify-center gap-2">
-                                            <input type="number" wire:model.live="pendingQty" min="0" class="w-16 text-center rounded border border-amber-300 bg-amber-50 px-2 py-1.5 text-sm font-bold focus:ring-2 focus:ring-amber-500 outline-none" autofocus />
+                                            <!-- wire:model (tanpa .live) agar nilai hanya tersimpan saat Simpan diklik, tidak re-render setiap ketik -->
+                                            <input type="number" wire:model="pendingQty" min="0" class="w-16 text-center rounded border border-amber-300 bg-amber-50 px-2 py-1.5 text-sm font-bold focus:ring-2 focus:ring-amber-500 outline-none" x-on:focus="$el.select()" />
                                             <button wire:click="saveStock('<?php echo e($key); ?>')" class="px-2.5 py-1.5 rounded bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700">Simpan</button>
                                             <button wire:click="cancelEditing" class="px-2.5 py-1.5 rounded bg-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-300">Batal</button>
                                         </div>

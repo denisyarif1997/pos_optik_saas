@@ -15,7 +15,7 @@ class Index extends Component
     #[Validate('required|integer')]
     public ?int $customer_id = null;
 
-    #[Validate('required|integer|exists:sales,id')]
+    #[Validate('nullable|integer|exists:sales,id')]
     public ?int $sale_id = null;
 
     public string $sale_code = '';
@@ -75,7 +75,7 @@ class Index extends Component
         abort_unless($storeId, 403);
 
         $customer = Customer::forStore($storeId)->findOrFail($this->customer_id);
-        $sale = Sale::forStore($storeId)->findOrFail($this->sale_id);
+        $sale = $this->sale_id ? Sale::forStore($storeId)->findOrFail($this->sale_id) : null;
 
         Warranty::create([
             'store_id' => $storeId,

@@ -13,9 +13,25 @@
         </div>
         <div class="mt-4 space-y-2 text-sm">
             @foreach ($sale->items as $it)
+                @php
+                    $returnedQty = (int) (($returnsByItem[$it->product_id]['qty'] ?? 0));
+                    $remainingQty = (int) $it->qty - $returnedQty;
+                    $itemRefund = (float) (($returnsByItem[$it->product_id]['amount'] ?? 0));
+                @endphp
                 <div class="flex justify-between gap-3 py-2 border-b border-slate-50 last:border-0">
-                    <span>{{ $it->product?->name }} <span class="text-slate-400">× {{ $it->qty }}</span></span>
-                    <b>Rp {{ number_format($it->subtotal, 0, ',', '.') }}</b>
+                    <span>
+                        {{ $it->product?->name }}
+                        <span class="text-slate-400">× {{ $remainingQty }} / {{ $it->qty }}</span>
+                        @if ($returnedQty > 0)
+                            <span class="text-xs text-emerald-600 ml-2">(diretur {{ $returnedQty }})</span>
+                        @endif
+                    </span>
+                    <div class="text-right">
+                        <b>Rp {{ number_format($it->subtotal, 0, ',', '.') }}</b>
+                        @if ($itemRefund > 0)
+                            <span class="text-xs text-emerald-600 block">- Rp {{ number_format($itemRefund, 0, ',', '.') }}</span>
+                        @endif
+                    </div>
                 </div>
             @endforeach
         </div>

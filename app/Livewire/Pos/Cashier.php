@@ -74,6 +74,9 @@ class Cashier extends Component
             'product_id' => $product->id,
             'qty' => 1,
             'discount' => 0,
+            'sph' => null,
+            'cyl' => null,
+            'add_val' => 0.00,
             'item_type' => $this->mode === 'optical' ? 'optical' : 'sale',
         ];
         $this->dispatchTotalsToBrowser();
@@ -105,6 +108,19 @@ class Cashier extends Component
     {
         unset($this->cart[$index]);
         $this->cart = array_values($this->cart);
+        $this->dispatchTotalsToBrowser();
+    }
+
+    public function updateLensSpecs(int $index, string $sph, string $cyl, string $add): void
+    {
+        if (! isset($this->cart[$index])) {
+            return;
+        }
+
+        $this->cart[$index]['sph'] = $sph === '' ? null : (float) $sph;
+        $this->cart[$index]['cyl'] = $cyl === '' ? null : (float) $cyl;
+        $this->cart[$index]['add_val'] = $add === '' ? 0.00 : (float) $add;
+
         $this->dispatchTotalsToBrowser();
     }
 
@@ -198,7 +214,14 @@ class Cashier extends Component
 
             $sale = $sales->create(auth()->user(), [
                 'customer_id' => $this->customer_id,
-                'items' => array_map(fn ($r) => ['product_id' => $r['product_id'], 'qty' => $r['qty'], 'discount' => $r['discount']], $this->cart),
+                'items' => array_map(fn ($r) => [
+                    'product_id' => $r['product_id'],
+                    'qty' => $r['qty'],
+                    'discount' => $r['discount'] ?? 0,
+                    'sph' => $r['sph'] ?? null,
+                    'cyl' => $r['cyl'] ?? null,
+                    'add_val' => $r['add_val'] ?? 0.00,
+                ], $this->cart),
                 'discount_percent' => (float) $this->discount_percent,
                 'apply_ppn' => $this->apply_ppn,
                 'payments' => $this->pay_amount > 0 ? [[

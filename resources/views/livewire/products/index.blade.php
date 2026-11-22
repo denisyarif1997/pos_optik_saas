@@ -12,11 +12,11 @@
     <div class="flex items-center gap-3 mb-4">
         <select wire:model.live="type" class="input">
             <option value="">Semua tipe</option>
-            <option value="frame">Frame</option>
-            <option value="lensa">Lensa</option>
-            <option value="softlens">Softlens</option>
-            <option value="cairan">Cairan</option>
-            <option value="aksesori">Aksesori</option>
+            <option value="FRAME">Frame</option>
+            <option value="STOCK_LENS">Lensa</option>
+            <option value="RX_LENS">Lensa RX</option>
+            <!-- <option value="cairan">Cairan</option> -->
+            <!-- <option value="aksesori">Aksesori</option> -->
         </select>
     </div>
 

@@ -83,10 +83,24 @@ class Show extends Component
         $storeId = app('activeStore')->id();
         abort_unless($storeId, 403);
 
-        $sale = Sale::forStore($storeId)->with(['items.product', 'payments.cashAccount', 'customer'])->findOrFail($this->saleId);
+        $sale = Sale::forStore($storeId)->with(['items.product', 'payments.cashAccount', 'customer', 'returns'])->findOrFail($this->saleId);
+
+        // Hitung retur per produk untuk menyesuaikan tampilan detail nota
+        $returnsByItem = [];
+        $totalRefund = 0.0;
+        foreach ($sale->returns as $ret) {
+            if (! isset($returnsByItem[$ret->product_id])) {
+                $returnsByItem[$ret->product_id] = ['qty' => 0, 'amount' => 0.0];
+            }
+            $returnsByItem[$ret->product_id]['qty'] += (int) $ret->qty;
+            $returnsByItem[$ret->product_id]['amount'] += (float) $ret->refund_amount;
+            $totalRefund += (float) $ret->refund_amount;
+        }
 
         return view('livewire.sales.show', [
             'sale' => $sale,
+            'returnsByItem' => $returnsByItem,
+            'totalRefund' => $totalRefund,
             'cashAccounts' => CashAccount::forStore($storeId)->where('is_active', true)->orderBy('name')->get(),
         ])->title('Nota '.$sale->code);
     }

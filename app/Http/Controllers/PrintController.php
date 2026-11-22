@@ -14,12 +14,26 @@ class PrintController extends Controller
         $storeId = app('activeStore')->id($request->user());
         abort_unless($storeId, 403);
 
-        $sale = Sale::forStore($storeId)->with(['items.product', 'payments.cashAccount', 'customer'])->findOrFail($id);
+        $sale = Sale::forStore($storeId)->with(['items.product', 'payments.cashAccount', 'customer', 'returns'])->findOrFail($id);
         $request->user()->can('view', $sale) || abort(403);
+
+        // Hitung retur per produk untuk cetak nota
+        $returnsByItem = [];
+        $totalRefund = 0.0;
+        foreach ($sale->returns as $ret) {
+            if (! isset($returnsByItem[$ret->product_id])) {
+                $returnsByItem[$ret->product_id] = ['qty' => 0, 'amount' => 0.0];
+            }
+            $returnsByItem[$ret->product_id]['qty'] += (int) $ret->qty;
+            $returnsByItem[$ret->product_id]['amount'] += (float) $ret->refund_amount;
+            $totalRefund += (float) $ret->refund_amount;
+        }
 
         return response()->view('print.sale', [
             'sale' => $sale,
             'store' => app('activeStore')->get($request->user()),
+            'returnsByItem' => $returnsByItem,
+            'totalRefund' => $totalRefund,
         ]);
     }
 

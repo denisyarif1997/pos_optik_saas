@@ -7,6 +7,7 @@ use App\Livewire\Auth\Login;
 use App\Livewire\Auth\Register;
 use App\Livewire\Billing\Index as BillingIndex;
 use App\Livewire\CashAccounts\Index as CashAccountIndex;
+use App\Livewire\CashIns\Index as CashInIndex;
 use App\Livewire\Categories\Form;
 use App\Livewire\Categories\Index as CategoryIndex;
 use App\Livewire\Customers\Form as CustomerForm;
@@ -129,6 +130,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/expenses', ExpenseIndex::class)->name('expenses.index')->middleware('store.role:owner');
         Route::get('/expenses/create', App\Livewire\Expenses\Form::class)->name('expenses.create')->middleware('store.role:owner');
         Route::get('/expenses/{id}/edit', App\Livewire\Expenses\Form::class)->name('expenses.edit')->middleware('store.role:owner');
+        Route::get('/cash-ins', CashInIndex::class)->name('cash-ins.index')->middleware('store.role:owner');
+        Route::get('/cash-ins/create', App\Livewire\CashIns\Form::class)->name('cash-ins.create')->middleware('store.role:owner');
+        Route::get('/cash-ins/{id}/edit', App\Livewire\CashIns\Form::class)->name('cash-ins.edit')->middleware('store.role:owner');
         Route::get('/returns', ReturnIndex::class)->name('returns.index')->middleware('store.role:owner,kasir');
         Route::get('/warranties', WarrantyIndex::class)->name('warranties.index');
         Route::get('/warranties/create', App\Livewire\Warranties\Form::class)->name('warranties.create');
