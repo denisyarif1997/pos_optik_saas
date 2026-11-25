@@ -106,7 +106,11 @@
 
                             <div class="flex items-center justify-between">
                                 <div class="text-xs font-medium text-text-secondary">
-                                    Rp {{ number_format($row['product']->sell_price, 0, ',', '.') }}
+                                    Rp {{ number_format($row['product']->sell_price, 0, ',', '.') }} &times; {{ $row['qty'] }}
+                                    @if ($row['discount'] > 0)
+                                        <span class="block text-[10px] text-error">Diskon - Rp {{ number_format($row['discount'], 0, ',', '.') }}</span>
+                                    @endif
+                                    <span class="block text-[11px] font-semibold text-text-main">= Rp {{ number_format($row['line_net'], 0, ',', '.') }}</span>
                                 </div>
 
                                 <!-- QTY Controller -->
@@ -114,6 +118,27 @@
                                     <button wire:click="decrementQty({{ $idx }})" class="px-2.5 py-1 text-text-main hover:bg-white transition-colors">-</button>
                                     <div class="px-3 py-1 font-semibold text-sm bg-white border-x border-line">{{ $row['qty'] }}</div>
                                     <button wire:click="incrementQty({{ $idx }})" class="px-2.5 py-1 text-text-main hover:bg-white transition-colors">+</button>
+                                </div>
+                            </div>
+
+                            <!-- Diskon & PPN per item -->
+                            <div class="grid grid-cols-2 gap-2 pt-2 border-t border-line">
+                                <div class="min-w-0">
+                                    <label class="block text-[10px] text-text-secondary mb-1">Diskon item (Rp)</label>
+                                    <input type="number" min="0" step="100" inputmode="numeric"
+                                        wire:model.live.debounce.500ms="cart.{{ $idx }}.discount"
+                                        placeholder="0"
+                                        class="input w-full text-[11px] py-1.5 px-2 text-right @error("cart.$idx.discount") border-error @enderror"/>
+                                    @error("cart.$idx.discount")
+                                        <p class="mt-1 text-[10px] text-error leading-tight">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                                <div class="min-w-0">
+                                    <label class="block text-[10px] text-text-secondary mb-1">PPN 11%</label>
+                                    <label class="flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold cursor-pointer transition-colors {{ $row['ppn'] ? 'bg-emerald-bg border-emerald text-emerald-dark' : 'bg-canvas border-line text-text-main hover:border-emerald' }}">
+                                        <input type="checkbox" wire:model.live="cart.{{ $idx }}.ppn" class="h-3.5 w-3.5 rounded border-line text-emerald focus:ring-emerald/20">
+                                        <span>{{ $row['ppn'] ? 'Dikenakan' : 'Tanpa PPN' }}</span>
+                                    </label>
                                 </div>
                             </div>
 
@@ -147,6 +172,23 @@
         <!-- FORM PEMBAYARAN: dibatasi 45% tinggi panel, scroll sendiri -->
         <div class="shrink min-h-[140px] lg:max-h-[45%] overflow-y-auto p-4 border-t border-line bg-white">
 
+            <!-- Error / flash messages yang di-set selama request Livewire -->
+            @error('checkout')
+                <div class="mb-3 p-3 rounded-lg border border-error bg-error/10 text-error text-xs">
+                    {{ $message }}
+                </div>
+            @enderror
+            @error('cart')
+                <div class="mb-3 p-3 rounded-lg border border-error bg-error/10 text-error text-xs">
+                    {{ $message }}
+                </div>
+            @enderror
+            @if (session('error'))
+                <div class="mb-3 p-3 rounded-lg border border-error bg-error/10 text-error text-xs">
+                    {{ session('error') }}
+                </div>
+            @endif
+
             <div class="mb-3">
                 @if ($mode === 'optical')
                     <label for="customerId" class="label text-[10px]">Pelanggan <span class="text-error">*</span></label>
@@ -162,27 +204,27 @@
 
             <div class="mb-3 grid grid-cols-2 gap-3">
                 <div>
-                    <label for="discountPercent" class="label text-[10px]">Diskon transaksi</label>
+                    <label for="discountAmount" class="label text-[10px]">Diskon transaksi (Rp)</label>
                     <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-xs font-semibold text-text-muted pointer-events-none">Rp</span>
                         <input
-                            id="discountPercent"
+                            id="discountAmount"
                             type="number"
                             min="0"
-                            max="100"
-                            step="0.01"
-                            wire:model.live.debounce.300ms="discount_percent"
-                            class="input py-2 pr-8 text-sm"
+                            step="100"
+                            inputmode="numeric"
+                            wire:model.live.debounce.300ms="discount_amount"
+                            class="input py-2 pl-9 text-sm text-right"
                             placeholder="0"
                         >
-                        <span class="absolute inset-y-0 right-3 flex items-center text-xs text-text-muted">%</span>
                     </div>
-                    @error('discount_percent') <p class="mt-1 text-[10px] text-error">{{ $message }}</p> @enderror
+                    @error('discount_amount') <p class="mt-1 text-[10px] text-error">{{ $message }}</p> @enderror
                 </div>
                 <label class="flex items-center gap-2 rounded-xl border border-line bg-canvas px-3 py-2.5 text-xs font-semibold text-text-main">
                     <input type="checkbox" wire:model.live="apply_ppn" class="h-4 w-4 rounded border-line text-emerald focus:ring-emerald/20">
                     <span>
-                        <span class="block">PPN 11%</span>
-                        <span class="block text-[10px] font-normal text-text-secondary">Opsional</span>
+                        <span class="block">PPN 11% semua item</span>
+                        <span class="block text-[10px] font-normal text-text-secondary">Opsional, bisa per item</span>
                     </span>
                 </label>
             </div>
@@ -213,6 +255,7 @@
                     @endforeach
                 </div>
             </div>
+            @error('payment_method') <p class="mt-1 text-[10px] text-error">{{ $message }}</p> @enderror
 
             <div class="mb-3">
                 <label for="cashAccountId" class="label">Masuk ke kas</label>
@@ -239,11 +282,15 @@
                         placeholder="0"
                         :value="payAmount ? new Intl.NumberFormat('id-ID').format(payAmount) : ''"
                         @input="
-                            payAmount = parseInt($event.target.value.replace(/\D/g, '')) || 0;
-                            $event.target.value = payAmount ? new Intl.NumberFormat('id-ID').format(payAmount) : '';
+                            clearTimeout(window.payAmountTimer);
+                            window.payAmountTimer = setTimeout(() => {
+                                payAmount = parseInt($event.target.value.replace(/\D/g, '')) || 0;
+                                $event.target.value = payAmount ? new Intl.NumberFormat('id-ID').format(payAmount) : '';
+                            }, 500);
                         "
                         @focus="$event.target.select()"
                     >
+                    @error('pay_amount') <p class="mt-1 text-[10px] text-error">{{ $message }}</p> @enderror
                 </div>
 
                 <div class="mt-2 flex flex-wrap gap-1.5">
@@ -280,11 +327,11 @@
                 @endif
                 @if ($totals['transaction_discount'] > 0)
                     <div class="flex justify-between text-text-secondary">
-                        <span>Diskon transaksi ({{ number_format((float) $discount_percent, 2, ',', '.') }}%)</span>
+                        <span>Diskon transaksi</span>
                         <span>- Rp {{ number_format($totals['transaction_discount'], 0, ',', '.') }}</span>
                     </div>
                 @endif
-                @if ($apply_ppn)
+                @if ($totals['ppn_amount'] > 0)
                     <div class="flex justify-between font-medium text-emerald-dark">
                         <span>PPN (11%)</span>
                         <span>+ Rp {{ number_format($totals['ppn_amount'], 0, ',', '.') }}</span>
@@ -298,9 +345,11 @@
             </div>
 
             <button wire:click="checkout"
+                wire:loading.attr="disabled"
                 class="btn-primary w-full py-3.5 text-base shadow-lg {{ count($cartDetailed) === 0 ? 'opacity-50 cursor-not-allowed' : '' }}"
                 {{ count($cartDetailed) === 0 ? 'disabled' : '' }}>
                 {{ $mode === 'sale' ? 'Bayar Transaksi' : 'Buat Pesanan Optik' }}
+                <span wire:loading class="ml-2 text-xs animate-spin">⟳</span>
             </button>
         </div>
     </div>

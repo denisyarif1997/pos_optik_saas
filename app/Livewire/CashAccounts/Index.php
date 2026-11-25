@@ -73,6 +73,8 @@ class Index extends Component
 
         $this->statusType = 'success';
         $this->cancelEditing();
+
+        $this->dispatch('notify', type: 'success', message: $this->statusMessage);
     }
 
     public function toggleActive(int $id): void
@@ -84,20 +86,46 @@ class Index extends Component
             $this->statusType = 'error';
             $this->statusMessage = 'Minimal satu akun kas harus tetap aktif.';
 
+            $this->dispatch('notify', type: 'error', message: $this->statusMessage, sticky: true);
+
             return;
         }
 
         $account->update(['is_active' => ! $account->is_active]);
         $this->statusType = 'success';
         $this->statusMessage = $account->is_active ? 'Akun kas diaktifkan.' : 'Akun kas dinonaktifkan.';
+
+        $this->dispatch('notify', type: 'success', message: $this->statusMessage);
     }
 
     public function render()
     {
         $storeId = $this->storeId();
+        $balances = CashAccount::balancesForStore($storeId);
+        $accounts = CashAccount::forStore($storeId)->orderBy('name')->get();
+        $totalBalance = 0.0;
+
+        $rows = $accounts->map(function (CashAccount $account) use ($balances, &$totalBalance): array {
+            $balance = $balances[$account->id] ?? 0.0;
+
+            if ($account->is_active) {
+                $totalBalance += $balance;
+            }
+
+            return [
+                'id' => $account->id,
+                'name' => $account->name,
+                'type' => $account->type,
+                'is_active' => $account->is_active,
+                'balance' => $balance,
+            ];
+        })->all();
+
+        // dd($rows);
 
         return view('livewire.cash-accounts.index', [
-            'accounts' => CashAccount::forStore($storeId)->orderBy('name')->get(),
+            'accounts' => $rows,
+            'totalBalance' => $totalBalance,
         ])->title('Master Kas');
     }
 

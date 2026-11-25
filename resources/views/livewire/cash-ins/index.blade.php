@@ -47,6 +47,19 @@
                 </div>
 
                 <div>
+                    <label class="label">Akun Kas <span class="text-error">*</span></label>
+                    <select wire:model="cashAccountId" class="input @error('cashAccountId') border-error @enderror">
+                        <option value="">-- Pilih Akun Kas --</option>
+                        @foreach ($cashAccountOptions as $id => $name)
+                            <option value="{{ $id }}">{{ $name }}</option>
+                        @endforeach
+                    </select>
+                    @error('cashAccountId')
+                        <p class="text-[11px] text-error mt-1 flex items-center gap-1">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div>
                     <label class="label">Kategori <span class="text-error">*</span></label>
                     <select wire:model="category" class="input @error('category') border-error @enderror">
                         <option value="penjualan">Penjualan</option>
@@ -90,6 +103,7 @@
                 <thead class="bg-slate-100 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                     <tr>
                         <th class="py-3 px-4 text-left">Deskripsi</th>
+                        <th class="py-3 px-4 text-left w-32">Akun Kas</th>
                         <th class="py-3 px-4 text-left w-32">Kategori</th>
                         <th class="py-3 px-4 text-left w-20">Tanggal</th>
                         <th class="py-3 px-4 text-right w-24">Nominal</th>
@@ -100,6 +114,7 @@
                     @forelse ($cashIns as $c)
                         <tr class="hover:bg-slate-50 transition-colors">
                             <td class="py-3 px-4 font-medium text-text-main">{{ $c->description }}</td>
+                            <td class="py-3 px-4 text-[11px] text-text-secondary">{{ $c->cashAccount?->name ?? '-' }}</td>
                             <td class="py-3 px-4 text-[11px] text-text-secondary">{{ ucfirst($c->category) }}</td>
                             <td class="py-3 px-4 text-[11px] text-text-secondary">{{ $c->received_at->format('d M Y') }}</td>
                             <td class="py-3 px-4 text-[11px] font-semibold text-emerald-600 text-right">Rp {{ number_format($c->amount, 0, ',', '.') }}</td>
@@ -112,7 +127,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="py-8 text-center text-slate-400 text-sm">Belum ada kas masuk.</td>
+                            <td colspan="6" class="py-8 text-center text-slate-400 text-sm">Belum ada kas masuk.</td>
                         </tr>
                     @endforelse
                 </tbody>

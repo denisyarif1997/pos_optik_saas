@@ -7,14 +7,15 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Sale extends Model
 {
     use BelongsToStore, HasFactory;
 
     protected $fillable = [
-        'store_id', 'customer_id', 'cashier_id', 'code', 'sold_at',
-        'subtotal', 'discount_total', 'discount_percent', 'ppn_rate', 'ppn_amount', 'total', 'paid_total',
+        'store_id', 'customer_id', 'cashier_id', 'code', 'sequence_number', 'sold_at',
+        'subtotal', 'discount_total', 'discount_percent', 'discount_amount', 'ppn_rate', 'ppn_amount', 'total', 'paid_total',
         'payment_status', 'status', 'notes',
     ];
 
@@ -25,6 +26,7 @@ class Sale extends Model
             'subtotal' => 'decimal:2',
             'discount_total' => 'decimal:2',
             'discount_percent' => 'decimal:2',
+            'discount_amount' => 'decimal:2',
             'ppn_rate' => 'decimal:2',
             'ppn_amount' => 'decimal:2',
             'total' => 'decimal:2',

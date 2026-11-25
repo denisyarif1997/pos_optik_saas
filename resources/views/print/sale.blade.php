@@ -23,13 +23,19 @@
                 $remainingQty = (int) $it->qty - $returnedQty;
             @endphp
             <tr><td colspan="2">{{ $it->product?->name }} × {{ $remainingQty }} / {{ $it->qty }}</td><td class="right">{{ number_format($it->subtotal, 0, ',', '.') }}</td></tr>
+            @if ((float) $it->discount > 0 || (float) $it->ppn_amount > 0)
+                <tr><td colspan="3" class="right" style="font-size:11px">
+                    @if ((float) $it->discount > 0)diskon -{{ number_format($it->discount, 0, ',', '.') }}@endif
+                    @if ((float) $it->ppn_amount > 0){{ (float) $it->discount > 0 ? ' | ' : '' }}PPN +{{ number_format($it->ppn_amount, 0, ',', '.') }}@endif
+                </td></tr>
+            @endif
         @endforeach
     </table>
     <hr>
     <table>
         <tr><td>Subtotal</td><td class="right">{{ number_format($sale->subtotal, 0, ',', '.') }}</td></tr>
         @if ($sale->discount_total > 0)
-            <tr><td>Diskon ({{ number_format($sale->discount_percent, 2, ',', '.') }}%)</td><td class="right">-{{ number_format($sale->discount_total, 0, ',', '.') }}</td></tr>
+            <tr><td>Diskon</td><td class="right">-{{ number_format($sale->discount_total, 0, ',', '.') }}</td></tr>
         @endif
         @if ($sale->ppn_amount > 0)
             <tr><td>PPN ({{ number_format($sale->ppn_rate, 0) }}%)</td><td class="right">{{ number_format($sale->ppn_amount, 0, ',', '.') }}</td></tr>

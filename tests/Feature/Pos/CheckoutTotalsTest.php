@@ -35,7 +35,7 @@ class CheckoutTotalsTest extends TestCase
                 'discount' => 0,
                 'item_type' => 'sale',
             ]])
-            ->set('discount_percent', '10')
+            ->set('discount_amount', 20000)
             ->set('apply_ppn', true)
             ->assertDispatched('cashier-total-updated', total: 199800)
             ->set('cash_account_id', $cashAccount->id)
@@ -49,7 +49,8 @@ class CheckoutTotalsTest extends TestCase
             'id' => $sale->id,
             'subtotal' => 200000,
             'discount_total' => 20000,
-            'discount_percent' => 10,
+            'discount_percent' => 0,
+            'discount_amount' => 20000,
             'ppn_rate' => 11,
             'ppn_amount' => 19800,
             'total' => 199800,
@@ -92,7 +93,7 @@ class CheckoutTotalsTest extends TestCase
         $this->assertDatabaseCount('sales', 0);
     }
 
-    public function test_cashier_rejects_transaction_discount_over_one_hundred_percent(): void
+    public function test_cashier_rejects_transaction_discount_above_the_subtotal(): void
     {
         [$user, $store] = $this->makeStoreWithOwner();
         $this->actingAs($user);
@@ -105,9 +106,9 @@ class CheckoutTotalsTest extends TestCase
                 'discount' => 0,
                 'item_type' => 'sale',
             ]])
-            ->set('discount_percent', '100.01')
+            ->set('discount_amount', 150000)
             ->call('checkout')
-            ->assertHasErrors(['discount_percent']);
+            ->assertHasErrors(['discount_amount']);
 
         $this->assertDatabaseCount('sales', 0);
     }
@@ -134,7 +135,7 @@ class CheckoutTotalsTest extends TestCase
                 'discount' => 0,
                 'item_type' => 'optical',
             ]])
-            ->set('discount_percent', '10')
+            ->set('discount_amount', 10000)
             ->set('apply_ppn', true)
             ->set('cash_account_id', $cashAccount->id)
             ->set('pay_amount', 50000)
@@ -147,7 +148,8 @@ class CheckoutTotalsTest extends TestCase
             'id' => $order->id,
             'subtotal' => 100000,
             'discount_total' => 10000,
-            'discount_percent' => 10,
+            'discount_percent' => 0,
+            'discount_amount' => 10000,
             'ppn_rate' => 11,
             'ppn_amount' => 9900,
             'total' => 99900,

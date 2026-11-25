@@ -46,6 +46,9 @@ class Create extends Component
 
         $store->members()->attach(auth()->id(), ['role' => 'owner', 'is_active' => true]);
 
+        session()->flash('success', 'Toko berhasil dibuat.');
+        $this->dispatch('notify', type: 'success', message: 'Toko berhasil dibuat.');
+
         $this->redirectRoute('dashboard', navigate: true);
     }
 

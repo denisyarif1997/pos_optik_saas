@@ -45,6 +45,8 @@ class Form extends Component
             $cat = Category::forStore($storeId)->findOrFail($this->categoryId);
             $this->authorize('update', $cat);
             $cat->update(['name' => $this->name, 'is_active' => $this->is_active]);
+            session()->flash('success', 'Kategori diperbarui.');
+            $this->dispatch('notify', type: 'success', message: 'Kategori berhasil diperbarui.');
         } else {
             $this->authorize('create', Category::class);
             $slugBase = Str::slug($this->name) ?: 'kategori';
@@ -54,6 +56,8 @@ class Form extends Component
                 $slug = $slugBase.'-'.$i++;
             }
             Category::create(['store_id' => $storeId, 'name' => $this->name, 'slug' => $slug, 'is_active' => $this->is_active]);
+            session()->flash('success', 'Kategori ditambahkan.');
+            $this->dispatch('notify', type: 'success', message: 'Kategori berhasil ditambahkan.');
         }
 
         $this->redirectRoute('categories.index', navigate: true);

@@ -12,6 +12,7 @@
     <x-page-header title="Riwayat Transaksi" description="Semua penjualan toko Anda">
         <x-slot:actions>
             <a href="{{ route('pos.cashier') }}" wire:navigate class="btn-primary px-4 py-2 text-sm">+ Transaksi Baru</a>
+            <a href="{{ route('export.sales', array_filter(['from' => $from, 'to' => $to])) }}" class="btn-ghost px-4 py-2 text-sm text-xs">⬇ Ekspor CSV</a>
         </x-slot:actions>
     </x-page-header>
 
@@ -75,8 +76,9 @@
         <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full text-sm border-collapse">
-                    <thead class="bg-slate-100 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    {{-- <thead class="bg-slate-100 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                         <tr>
+                            <th class="py-3 px-4 text-left w-14">No</th>
                             <th class="py-3 px-4 text-left w-40">Transaksi</th>
                             <th class="py-3 px-4 text-left">Pelanggan</th>
                             <th class="py-3 px-4 text-right w-32">Total</th>
@@ -86,7 +88,20 @@
                             <th class="py-3 px-4 text-left w-20">Status</th>
                             <th class="py-3 px-4 text-right w-24">Aksi</th>
                         </tr>
-                    </thead>
+                    </thead> --}}
+                    <thead class="bg-slate-100 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+    <tr>
+        <th class="py-3 px-3 text-center w-px whitespace-nowrap">No</th>
+        <th class="py-3 px-3 text-left w-40 whitespace-nowrap">Transaksi</th>
+        <th class="py-3 px-3 text-left w-40 whitespace-nowrap">Pelanggan</th>
+        <th class="py-3 px-3 text-right w-28 whitespace-nowrap">Total</th>
+        <th class="py-3 px-3 text-right w-28 whitespace-nowrap">Dibayar</th>
+        <th class="py-3 px-3 text-right w-28 whitespace-nowrap">Sisa</th>
+        <th class="py-3 px-3 text-left w-28 whitespace-nowrap">Kasir</th>
+        <th class="py-3 px-3 text-left w-px whitespace-nowrap">Status</th>
+        <th class="py-3 px-3 text-right w-px whitespace-nowrap">Aksi</th>
+    </tr>
+</thead>
                     <tbody class="divide-y divide-slate-100 bg-white">
                         @forelse ($sales as $s)
                             @php
@@ -99,6 +114,9 @@
                                     : null;
                             @endphp
                             <tr wire:key="sale-{{ $s->id }}" class="hover:bg-slate-50 transition-colors">
+                                <td class="py-3 px-4 text-xs font-medium text-slate-500">
+                                    {{ $sales->firstItem() + $loop->index }}
+                                </td>
                                 <td class="py-3 px-4">
                                     <div class="font-medium text-text-main">{{ $s->code }}</div>
                                     <p class="text-[11px] text-text-secondary">{{ $s->sold_at?->translatedFormat('d M Y, H:i') ?? '-' }}</p>
@@ -123,7 +141,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="py-8 text-center text-slate-400 text-sm">Tidak ada transaksi pada filter ini.</td>
+                                <td colspan="9" class="py-8 text-center text-slate-400 text-sm">Tidak ada transaksi pada filter ini.</td>
                             </tr>
                         @endforelse
                     </tbody>

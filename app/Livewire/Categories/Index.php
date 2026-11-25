@@ -32,6 +32,7 @@ class Index extends Component
         Category::create(['store_id' => $storeId, 'name' => $this->name, 'slug' => $slug, 'is_active' => true]);
         $this->reset('name');
         session()->flash('success', 'Kategori ditambahkan.');
+        $this->dispatch('notify', type: 'success', message: 'Kategori berhasil ditambahkan.');
     }
 
     public function toggle(int $id): void
@@ -40,6 +41,7 @@ class Index extends Component
         abort_unless($storeId, 403);
         $cat = Category::forStore($storeId)->findOrFail($id);
         $cat->update(['is_active' => ! $cat->is_active]);
+        $this->dispatch('notify', type: 'success', message: 'Status kategori diperbarui.');
     }
 
     public function render()

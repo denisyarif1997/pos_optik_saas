@@ -17,7 +17,7 @@ class OpticalOrder extends Model
         'store_id', 'customer_id', 'prescription_id', 'sale_id', 'order_number',
         'code', 'lab_name', 'prescription_snapshot', 'ordered_at',
         'estimated_done_at', 'promised_date', 'taken_at',
-        'subtotal', 'discount_total', 'discount_percent', 'ppn_rate', 'ppn_amount',
+        'subtotal', 'discount_total', 'discount_percent', 'discount_amount', 'ppn_rate', 'ppn_amount',
         'total', 'dp_total', 'status', 'work_notes',
     ];
 
@@ -31,6 +31,7 @@ class OpticalOrder extends Model
             'subtotal' => 'decimal:2',
             'discount_total' => 'decimal:2',
             'discount_percent' => 'decimal:2',
+            'discount_amount' => 'decimal:2',
             'ppn_rate' => 'decimal:2',
             'ppn_amount' => 'decimal:2',
             'total' => 'decimal:2',

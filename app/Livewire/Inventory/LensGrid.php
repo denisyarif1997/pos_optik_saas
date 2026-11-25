@@ -88,6 +88,7 @@ class LensGrid extends Component
         $row = $this->matrix[$key] ?? null;
         if (! $row) {
             session()->flash('error', 'Sel matriks tidak ditemukan.');
+            $this->dispatch('notify', type: 'error', message: 'Sel matriks tidak ditemukan.');
             $this->cancelEditing();
 
             return;
@@ -114,6 +115,7 @@ class LensGrid extends Component
         $this->loadMatrix();
         $this->cancelEditing();
         session()->flash('success', 'Stok lensa diperbarui.');
+        $this->dispatch('notify', type: 'success', message: 'Stok lensa diperbarui.');
     }
 
     public function isLowStock(array $cell): bool

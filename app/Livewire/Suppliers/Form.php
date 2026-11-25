@@ -56,6 +56,9 @@ class Form extends Component
             Supplier::create($data);
         }
 
+        session()->flash('success', $this->supplierId ? 'Supplier diperbarui.' : 'Supplier ditambahkan.');
+        $this->dispatch('notify', type: 'success', message: $this->supplierId ? 'Supplier berhasil diperbarui.' : 'Supplier berhasil ditambahkan.');
+
         $this->redirectRoute('suppliers.index', navigate: true);
     }
 

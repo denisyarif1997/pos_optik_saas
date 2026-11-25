@@ -40,6 +40,7 @@ class Index extends Component
         ]);
         $this->reset(['name', 'phone']);
         session()->flash('success', 'Supplier ditambahkan.');
+        $this->dispatch('notify', type: 'success', message: 'Supplier ditambahkan.');
     }
 
     public function toggle(int $id): void
@@ -48,6 +49,8 @@ class Index extends Component
         abort_unless($storeId, 403);
         $s = Supplier::forStore($storeId)->findOrFail($id);
         $s->update(['is_active' => ! $s->is_active]);
+
+        $this->dispatch('notify', type: 'success', message: 'Status supplier diperbarui.');
     }
 
     public function render()

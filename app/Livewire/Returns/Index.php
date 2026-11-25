@@ -171,6 +171,7 @@ class Index extends Component
 
         $returns->create(auth()->user(), $this->sale_id, $this->product_id, $this->qty, $this->reason ?: null);
         session()->flash('success', 'Retur tersimpan, stok kembali bertambah.');
+        $this->dispatch('notify', type: 'success', message: 'Retur tersimpan, stok kembali bertambah.');
         $this->reset(['sale_id', 'product_id', 'qty', 'reason']);
     }
 

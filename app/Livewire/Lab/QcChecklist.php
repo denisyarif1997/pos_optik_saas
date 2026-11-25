@@ -84,6 +84,7 @@ class QcChecklist extends Component
             if ($this->qcResult === 'pass') {
                 $opticalOrder->update(['status' => 'COMPLETED']);
                 session()->flash('success', 'QC lulus. Pesanan optik '.$opticalOrder->order_number.' ditandai selesai.');
+                $this->dispatch('notify', type: 'success', message: 'QC lulus. Pesanan optik '.$opticalOrder->order_number.' ditandai selesai.');
             } else {
                 $labOrder->update([
                     'status' => 'SALAH',
@@ -91,6 +92,7 @@ class QcChecklist extends Component
                 ]);
                 $opticalOrder->update(['status' => 'BATAL']);
                 session()->flash('warning', 'QC gagal. Lab order ditandai salah dan pesanan dikembalikan ke proses.');
+                $this->dispatch('notify', type: 'warning', message: 'QC gagal. Lab order ditandai salah dan pesanan dikembalikan ke proses.', sticky: true);
             }
         });
 

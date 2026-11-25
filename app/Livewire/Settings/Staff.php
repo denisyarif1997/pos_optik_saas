@@ -52,6 +52,7 @@ class Staff extends Component
         $this->role = 'kasir';
 
         session()->flash('success', 'Staf baru ditambahkan.');
+        $this->dispatch('notify', type: 'success', message: 'Staf baru ditambahkan.');
     }
 
     public function startEditRole(int $userId): void
@@ -89,6 +90,7 @@ class Staff extends Component
             $ownerCount = $store->members()->wherePivot('role', 'owner')->wherePivot('is_active', true)->count();
             if ($ownerCount <= 1) {
                 session()->flash('error', 'Tidak bisa mengubah role: toko harus memiliki minimal 1 owner aktif.');
+                $this->dispatch('notify', type: 'error', message: 'Tidak bisa mengubah role: toko harus memiliki minimal 1 owner aktif.', sticky: true);
 
                 return;
             }
@@ -98,6 +100,7 @@ class Staff extends Component
 
         $this->cancelEditRole();
         session()->flash('success', 'Role staf diperbarui.');
+        $this->dispatch('notify', type: 'success', message: 'Role staf diperbarui.');
     }
 
     public function toggleActive(int $userId): void
@@ -108,6 +111,7 @@ class Staff extends Component
         // Prevent deactivating yourself
         if ($userId === auth()->id()) {
             session()->flash('error', 'Tidak bisa menonaktifkan akun sendiri.');
+            $this->dispatch('notify', type: 'error', message: 'Tidak bisa menonaktifkan akun sendiri.', sticky: true);
 
             return;
         }
@@ -122,6 +126,7 @@ class Staff extends Component
             $activeOwners = $store->members()->wherePivot('role', 'owner')->wherePivot('is_active', true)->count();
             if ($activeOwners <= 1) {
                 session()->flash('error', 'Tidak bisa menonaktifkan owner terakhir.');
+                $this->dispatch('notify', type: 'error', message: 'Tidak bisa menonaktifkan owner terakhir.', sticky: true);
 
                 return;
             }
@@ -130,6 +135,7 @@ class Staff extends Component
         $store->members()->updateExistingPivot($userId, ['is_active' => $newState]);
 
         session()->flash('success', $newState ? 'Staf diaktifkan.' : 'Staf dinonaktifkan.');
+        $this->dispatch('notify', type: 'success', message: $newState ? 'Staf diaktifkan.' : 'Staf dinonaktifkan.');
     }
 
     public function resetPassword(int $userId): void
@@ -144,6 +150,7 @@ class Staff extends Component
         $member->update(['password' => Hash::make($newPassword)]);
 
         session()->flash('success', "Password staf direset ke: {$newPassword}");
+        $this->dispatch('notify', type: 'success', message: "Password staf direset ke: {$newPassword}");
     }
 
     protected function store(): ?Store

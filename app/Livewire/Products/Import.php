@@ -221,6 +221,7 @@ class Import extends Component
         $this->file = null;
 
         session()->flash('success', "Berhasil mengimpor {$count} produk.");
+        $this->dispatch('notify', type: 'success', message: "Berhasil mengimpor {$count} produk.");
     }
 
     public function resetImport(): void

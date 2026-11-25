@@ -12,7 +12,8 @@ class SaleItem extends Model
     use BelongsToStore, HasFactory;
 
     protected $fillable = [
-        'store_id', 'sale_id', 'product_id', 'sph', 'cyl', 'add_val', 'qty', 'price', 'discount', 'subtotal',
+        'store_id', 'sale_id', 'product_id', 'sph', 'cyl', 'add_val', 'qty', 'price',
+        'discount', 'ppn_rate', 'ppn_amount', 'subtotal',
     ];
 
     protected function casts(): array
@@ -20,6 +21,8 @@ class SaleItem extends Model
         return [
             'price' => 'decimal:2',
             'discount' => 'decimal:2',
+            'ppn_rate' => 'decimal:2',
+            'ppn_amount' => 'decimal:2',
             'subtotal' => 'decimal:2',
             'sph' => 'decimal:2',
             'cyl' => 'decimal:2',

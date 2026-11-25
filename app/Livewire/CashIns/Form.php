@@ -4,6 +4,7 @@ namespace App\Livewire\CashIns;
 
 use App\Models\CashAccount;
 use App\Models\CashIn;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
@@ -27,19 +28,41 @@ class Form extends Component
 
     public ?int $cashAccountId = null;
 
-    public string $cashAccountName = '';
-
     // Cash account options for the dropdown
     public array $cashAccountOptions = [];
 
+    /**
+     * @return array<string, array<int, mixed>>
+     */
+    public function rules(): array
+    {
+        return [
+            'cashAccountId' => [
+                'required',
+                'integer',
+                Rule::exists('cash_accounts', 'id')
+                    ->where(fn ($query) => $query->where('store_id', $this->storeId())->where('is_active', true)),
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'cashAccountId.required' => 'Pilih akun kas tujuan.',
+            'cashAccountId.exists' => 'Akun kas yang dipilih tidak valid atau tidak aktif.',
+        ];
+    }
+
     public function mount(?int $id = null): void
     {
-        $storeId = app('activeStore')->id();
-        abort_unless($storeId, 403);
+        $storeId = $this->storeId();
 
         // Load cash accounts for this store
-        $accounts = CashAccount::forStore($storeId)->active()->orderBy('name')->get();
-        $this->cashAccountOptions = $accounts->pluck('name', 'id')->toArray();
+        $this->cashAccountOptions = CashAccount::activeOptionsForStore($storeId);
 
         if ($id) {
             $c = CashIn::forStore($storeId)->findOrFail($id);
@@ -48,27 +71,19 @@ class Form extends Component
             $this->category = $c->category;
             $this->description = $c->description;
             $this->amount = (float) $c->amount;
-            // Set cash account if exists
-            if ($c->cash_account_id) {
-                $this->cashAccountId = $c->cash_account_id;
-                $this->cashAccountName = $c->cashAccount->name ?? '';
-            }
+            $this->cashAccountId = $c->cash_account_id;
         } else {
             $this->received_at = now()->format('Y-m-d');
-            // Set default cash account (Kas Toko) if available
-            $defaultAccount = CashAccount::forStore($storeId)->where('type', 'cash')->first();
-            if ($defaultAccount) {
-                $this->cashAccountId = $defaultAccount->id;
-                $this->cashAccountName = $defaultAccount->name;
-            }
+
+            // Default to the store's cash account, matching the previous behaviour.
+            $this->cashAccountId = CashAccount::defaultActiveAccountIdForStore($storeId);
         }
     }
 
     public function save(): void
     {
         $this->validate();
-        $storeId = app('activeStore')->id();
-        abort_unless($storeId, 403);
+        $storeId = $this->storeId();
 
         $data = [
             'received_at' => $this->received_at,
@@ -87,11 +102,26 @@ class Form extends Component
             CashIn::create($data);
         }
 
+        session()->flash('success', $this->cashInId ? 'Kas masuk diperbarui.' : 'Kas masuk ditambahkan.');
+        $this->dispatch('notify', type: 'success', message: $this->cashInId ? 'Kas masuk berhasil diperbarui.' : 'Kas masuk berhasil ditambahkan.');
+
         $this->redirectRoute('cash-ins.index', navigate: true);
     }
 
     public function render()
     {
-        return view('livewire.cash-ins.form')->title($this->cashInId ? 'Ubah Kas Masuk' : 'Tambah Kas Masuk');
+        $storeId = $this->storeId();
+
+        return view('livewire.cash-ins.form', [
+            'cashAccountBalances' => CashAccount::balancesForStore($storeId),
+        ])->title($this->cashInId ? 'Ubah Kas Masuk' : 'Tambah Kas Masuk');
+    }
+
+    private function storeId(): int
+    {
+        $storeId = app('activeStore')->id();
+        abort_unless($storeId, 403);
+
+        return $storeId;
     }
 }

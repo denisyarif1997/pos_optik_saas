@@ -15,6 +15,7 @@ use App\Services\CheckoutTotals;
 use App\Services\SaleService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -37,7 +38,7 @@ class Cashier extends Component
 
     public string $payment_method = 'cash';
 
-    public string $discount_percent = '0';
+    public string $discount_amount = '0';
 
     public bool $apply_ppn = false;
 
@@ -74,6 +75,7 @@ class Cashier extends Component
             'product_id' => $product->id,
             'qty' => 1,
             'discount' => 0,
+            'ppn' => $this->apply_ppn,
             'sph' => null,
             'cyl' => null,
             'add_val' => 0.00,
@@ -124,18 +126,35 @@ class Cashier extends Component
         $this->dispatchTotalsToBrowser();
     }
 
-    public function updatedDiscountPercent(): void
+    public function updatedDiscountAmount(): void
     {
         $this->dispatchTotalsToBrowser();
     }
 
-    public function updatedCart(): void
+    /**
+     * Nested cart updates (per item discount, per item PPN, lens specs) recalculate the
+     * totals. Item discounts are clamped to their own line total so the cart never goes
+     * negative while the cashier is typing.
+     */
+    public function updatedCart(mixed $value = null, ?string $key = null): void
     {
+        if (is_string($key) && str_ends_with($key, '.discount')) {
+            $this->normalizeCartDiscounts();
+        }
+
+        if (is_string($key) && str_ends_with($key, '.ppn')) {
+            $this->syncGlobalPpnFlag();
+        }
+
         $this->dispatchTotalsToBrowser();
     }
 
     public function updatedApplyPpn(): void
     {
+        foreach ($this->cart as $index => $row) {
+            $this->cart[$index]['ppn'] = (bool) $this->apply_ppn;
+        }
+
         $this->dispatchTotalsToBrowser();
     }
 
@@ -149,8 +168,7 @@ class Cashier extends Component
     public function getTotalsProperty(): array
     {
         $storeId = app('activeStore')->id();
-        $subtotal = 0;
-        $itemDiscount = 0;
+        $lines = [];
 
         if ($storeId) {
             foreach ($this->cart as $row) {
@@ -159,17 +177,148 @@ class Cashier extends Component
                     continue;
                 }
 
-                $subtotal += ((float) $product->sell_price) * (int) $row['qty'];
-                $itemDiscount += (float) ($row['discount'] ?? 0);
+                $lines[] = [
+                    'gross' => ((float) $product->sell_price) * max(1, (int) $row['qty']),
+                    'discount' => (float) ($row['discount'] ?? 0),
+                    'ppn_rate' => $this->itemPpnRate($row),
+                ];
             }
         }
 
-        return CheckoutTotals::calculate(
-            $subtotal,
-            $itemDiscount,
-            (float) $this->discount_percent,
-            $this->apply_ppn ? 11 : 0,
-        );
+        return CheckoutTotals::calculateForLines($lines, 0.0, (float) $this->discount_amount);
+    }
+
+    /**
+     * PPN rate for a cart line: the per item checkbox taxes that item, while the
+     * checkout wide PPN toggle taxes every line.
+     *
+     * @param  array<string, mixed>  $row
+     */
+    private function itemPpnRate(array $row): float
+    {
+        return ! empty($row['ppn']) || $this->apply_ppn ? 11.0 : 0.0;
+    }
+
+    /**
+     * Gross amount (price × qty) of a cart line, or null when the product is gone.
+     *
+     * @param  array<string, mixed>  $row
+     */
+    private function lineGross(int $storeId, array $row): ?float
+    {
+        $product = Product::forStore($storeId)->find($row['product_id'] ?? 0);
+
+        if (! $product) {
+            return null;
+        }
+
+        return ((float) $product->sell_price) * max(1, (int) ($row['qty'] ?? 1));
+    }
+
+    private function normalizeCartDiscounts(): void
+    {
+        $storeId = app('activeStore')->id();
+
+        if (! $storeId) {
+            return;
+        }
+
+        foreach ($this->cart as $index => $row) {
+            $gross = $this->lineGross($storeId, $row);
+
+            if ($gross === null) {
+                continue;
+            }
+
+            $this->cart[$index]['discount'] = round(min($gross, max(0.0, (float) ($row['discount'] ?? 0))), 2);
+        }
+    }
+
+    /**
+     * The checkout wide PPN toggle mirrors the per item checkboxes: it stays on only
+     * while every line is taxed, so unchecking one item switches the bulk toggle off.
+     */
+    private function syncGlobalPpnFlag(): void
+    {
+        if ($this->cart === []) {
+            $this->apply_ppn = false;
+
+            return;
+        }
+
+        foreach ($this->cart as $row) {
+            if (empty($row['ppn'])) {
+                $this->apply_ppn = false;
+
+                return;
+            }
+        }
+
+        $this->apply_ppn = true;
+    }
+
+    /**
+     * @throws ValidationException
+     */
+    private function validateCartLines(int $storeId): void
+    {
+        $errors = [];
+
+        foreach ($this->cart as $index => $row) {
+            $gross = $this->lineGross($storeId, $row);
+
+            if ($gross === null) {
+                $errors["cart.$index.discount"] = 'Produk pada baris ini sudah tidak tersedia.';
+
+                continue;
+            }
+
+            $discount = (float) ($row['discount'] ?? 0);
+
+            if ($discount < 0 || $discount > $gross) {
+                $errors["cart.$index.discount"] = 'Diskon item tidak boleh melebihi harga baris (Rp '.number_format($gross, 0, ',', '.').').';
+            }
+        }
+
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
+    }
+
+    /**
+     * Total of all lines after their own item discount: the ceiling for the
+     * transaction level discount.
+     */
+    private function discountableSubtotal(int $storeId): float
+    {
+        $total = 0.0;
+
+        foreach ($this->cart as $row) {
+            $gross = $this->lineGross($storeId, $row);
+
+            if ($gross === null) {
+                continue;
+            }
+
+            $discount = min($gross, max(0.0, (float) ($row['discount'] ?? 0)));
+            $total += $gross - $discount;
+        }
+
+        return round($total, 2);
+    }
+
+    /**
+     * @throws ValidationException
+     */
+    private function validateTransactionDiscount(int $storeId): void
+    {
+        $discountableSubtotal = $this->discountableSubtotal($storeId);
+
+        if ((float) $this->discount_amount > $discountableSubtotal) {
+            throw ValidationException::withMessages([
+                'discount_amount' => 'Diskon transaksi tidak boleh melebihi subtotal setelah diskon item (Rp '.number_format($discountableSubtotal, 0, ',', '.').').',
+            ]);
+        }
     }
 
     public function checkout(SaleService $sales): void
@@ -185,7 +334,7 @@ class Cashier extends Component
                 Rule::exists('customers', 'id')->where('store_id', $storeId),
             ],
             'mode' => 'required|in:sale,optical',
-            'discount_percent' => 'required|numeric|between:0,100',
+            'discount_amount' => 'required|numeric|min:0',
             'apply_ppn' => 'boolean',
             'pay_amount' => 'required|numeric|min:0',
             'payment_method' => 'required|string|in:cash,transfer,qris,card',
@@ -199,10 +348,13 @@ class Cashier extends Component
         ]);
 
         if (empty($this->cart)) {
-            session()->flash('error', 'Keranjang masih kosong.');
+            $this->addError('cart', 'Keranjang masih kosong.');
 
             return;
         }
+
+        $this->validateCartLines($storeId);
+        $this->validateTransactionDiscount($storeId);
 
         $customer = null;
         if ($this->customer_id) {
@@ -212,26 +364,34 @@ class Cashier extends Component
         if ($this->mode === 'sale') {
             $this->authorize('create', Sale::class);
 
-            $sale = $sales->create(auth()->user(), [
-                'customer_id' => $this->customer_id,
-                'items' => array_map(fn ($r) => [
-                    'product_id' => $r['product_id'],
-                    'qty' => $r['qty'],
-                    'discount' => $r['discount'] ?? 0,
-                    'sph' => $r['sph'] ?? null,
-                    'cyl' => $r['cyl'] ?? null,
-                    'add_val' => $r['add_val'] ?? 0.00,
-                ], $this->cart),
-                'discount_percent' => (float) $this->discount_percent,
-                'apply_ppn' => $this->apply_ppn,
-                'payments' => $this->pay_amount > 0 ? [[
-                    'method' => $this->payment_method,
-                    'amount' => $this->pay_amount,
-                    'cash_account_id' => $this->cash_account_id,
-                ]] : [],
-            ]);
+            try {
+                $sale = $sales->create(auth()->user(), [
+                    'customer_id' => $this->customer_id,
+                    'items' => array_map(fn ($r) => [
+                        'product_id' => $r['product_id'],
+                        'qty' => $r['qty'],
+                        'discount' => $r['discount'] ?? 0,
+                        'ppn' => (bool) ($r['ppn'] ?? false),
+                        'sph' => $r['sph'] ?? null,
+                        'cyl' => $r['cyl'] ?? null,
+                        'add_val' => $r['add_val'] ?? 0.00,
+                    ], $this->cart),
+                    'discount_amount' => (float) $this->discount_amount,
+                    'apply_ppn' => $this->apply_ppn,
+                    'payments' => $this->pay_amount > 0 ? [[
+                        'method' => $this->payment_method,
+                        'amount' => $this->pay_amount,
+                        'cash_account_id' => $this->cash_account_id,
+                    ]] : [],
+                ]);
+            } catch (\Exception $e) {
+                $this->addError('checkout', 'Transaksi gagal disimpan: '.$e->getMessage());
+
+                return;
+            }
 
             session()->flash('success', 'Transaksi '.$sale->code.' tersimpan.');
+            $this->dispatch('notify', type: 'success', message: 'Transaksi '.$sale->code.' tersimpan.');
             $this->redirectRoute('sales.show', ['id' => $sale->id], navigate: true);
 
             return;
@@ -248,23 +408,33 @@ class Cashier extends Component
             ->orderBy('id', 'desc')
             ->value('id');
         $code = 'OPT-'.now()->format('Ymd').'-'.str_pad((string) ($nextNumber > 0 ? $nextNumber % 10000 : 0), 4, '0', STR_PAD_LEFT);
-        $discountPercent = (float) $this->discount_percent;
-        $ppnRate = $this->apply_ppn ? 11.0 : 0.0;
+        $discountAmount = (float) $this->discount_amount;
         $paymentMethod = $this->payment_method;
         $payAmount = $this->pay_amount;
         $cashAccountId = $this->cash_account_id;
 
-        DB::transaction(function () use ($storeId, $customer, $code, $discountPercent, $ppnRate, $paymentMethod, $payAmount, $cashAccountId) {
+        DB::transaction(function () use ($storeId, $customer, $code, $discountAmount, $paymentMethod, $payAmount, $cashAccountId) {
             $snapshot = $this->prescription_id
                 ? Prescription::forStore($storeId)->find($this->prescription_id)->only(['od_sph', 'od_cyl', 'od_axis', 'od_add', 'os_sph', 'os_cyl', 'os_axis', 'os_add', 'pd'])
                 : [];
 
-            $subtotal = 0;
-            foreach ($this->cart as $row) {
+            $lines = [];
+            foreach ($this->cart as $index => $row) {
                 $product = Product::forStore($storeId)->lockForUpdate()->findOrFail((int) $row['product_id']);
-                $subtotal += (float) $product->sell_price * max(1, (int) $row['qty']);
+                $qty = max(1, (int) $row['qty']);
+
+                $lines[$index] = [
+                    'product' => $product,
+                    'row' => $row,
+                    'qty' => $qty,
+                    'price' => (float) $product->sell_price,
+                    'gross' => (float) $product->sell_price * $qty,
+                    'discount' => max(0, (float) ($row['discount'] ?? 0)),
+                    'ppn_rate' => $this->itemPpnRate($row),
+                ];
             }
-            $totals = CheckoutTotals::calculate($subtotal, 0, $discountPercent, $ppnRate);
+
+            $totals = CheckoutTotals::calculateForLines($lines, 0.0, $discountAmount);
 
             $order = OpticalOrder::create([
                 'store_id' => $storeId,
@@ -278,32 +448,34 @@ class Cashier extends Component
                 'promised_date' => $this->promised_date ?: null,
                 'subtotal' => $totals['subtotal'],
                 'discount_total' => $totals['discount_total'],
-                'discount_percent' => $discountPercent,
-                'ppn_rate' => $ppnRate,
+                'discount_percent' => 0,
+                'discount_amount' => $totals['discount_amount'],
+                'ppn_rate' => $totals['ppn_rate'],
                 'ppn_amount' => $totals['ppn_amount'],
                 'total' => $totals['total'],
                 'dp_total' => 0,
                 'status' => 'DRAFT',
             ]);
 
-            foreach ($this->cart as $row) {
-                $product = Product::forStore($storeId)->find($row['product_id']);
-                if (! $product) {
-                    continue;
-                }
+            foreach ($lines as $index => $line) {
+                $lineTotals = $totals['lines'][$index];
+                $product = $line['product'];
+                $qty = $line['qty'];
 
                 $order->items()->create([
                     'store_id' => $storeId,
                     'optical_order_id' => $order->id,
                     'product_id' => $product->id,
-                    'item_type' => $row['item_type'] ?? 'optical',
+                    'item_type' => $line['row']['item_type'] ?? 'optical',
                     'description' => $product->name,
-                    'qty' => (int) $row['qty'],
-                    'price' => (float) $product->sell_price,
-                    'subtotal' => ((float) $product->sell_price) * (int) $row['qty'],
+                    'qty' => $qty,
+                    'price' => $line['price'],
+                    'discount' => $lineTotals['discount'],
+                    'ppn_rate' => $lineTotals['ppn_rate'],
+                    'ppn_amount' => $lineTotals['ppn_amount'],
+                    'subtotal' => $lineTotals['subtotal'],
                 ]);
 
-                $qty = (int) $row['qty'];
                 if ($product->type === 'STOCK_LENS') {
                     if ($this->prescription_id) {
                         $this->deductStockLensMatrix($product->id, $snapshot);
@@ -344,6 +516,7 @@ class Cashier extends Component
         });
 
         session()->flash('success', 'Pesanan optik '.$code.' dibuat.');
+        $this->dispatch('notify', type: 'success', message: 'Pesanan optik '.$code.' dibuat.');
         $this->redirectRoute('optical-orders.show', ['id' => OpticalOrder::forStore($storeId)->where('order_number', $code)->first()->id], navigate: true);
     }
 
@@ -401,7 +574,20 @@ class Cashier extends Component
         foreach ($this->cart as $i => $row) {
             $product = Product::forStore($storeId)->find($row['product_id']);
             if ($product) {
-                $cartDetailed[] = ['index' => $i, 'product' => $product, 'qty' => $row['qty'], 'discount' => $row['discount'] ?? 0, 'item_type' => $row['item_type'] ?? 'sale'];
+                $gross = ((float) $product->sell_price) * max(1, (int) ($row['qty'] ?? 1));
+                $discount = min($gross, max(0.0, (float) ($row['discount'] ?? 0)));
+
+                $cartDetailed[] = [
+                    'index' => $i,
+                    'product' => $product,
+                    'qty' => $row['qty'],
+                    'discount' => $discount,
+                    'gross' => $gross,
+                    'line_net' => round($gross - $discount, 2),
+                    'ppn' => (bool) ($row['ppn'] ?? false),
+                    'ppn_rate' => $this->itemPpnRate($row),
+                    'item_type' => $row['item_type'] ?? 'sale',
+                ];
             }
         }
 

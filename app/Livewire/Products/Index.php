@@ -31,6 +31,7 @@ class Index extends Component
         $product->update(['is_active' => false]);
 
         session()->flash('success', 'Produk dinonaktifkan.');
+        $this->dispatch('notify', type: 'success', message: 'Produk dinonaktifkan.');
     }
 
     public function render()

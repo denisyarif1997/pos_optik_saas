@@ -36,6 +36,7 @@ class Adjust extends Component
         $stocks->adjust(auth()->user(), $this->productId, $this->qty, $this->qty > 0 ? 'in' : 'adjust', $this->notes ?: null);
 
         session()->flash('success', 'Stok diperbarui dan tercatat.');
+        $this->dispatch('notify', type: 'success', message: 'Stok diperbarui dan tercatat.');
         $this->redirectRoute('products.index', navigate: true);
     }
 

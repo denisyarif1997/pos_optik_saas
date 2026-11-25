@@ -76,6 +76,7 @@ class Show extends Component
 
         $this->reset('amount');
         session()->flash('success', 'Pembayaran tercatat.');
+        $this->dispatch('notify', type: 'success', message: 'Pembayaran tercatat.');
     }
 
     public function render()

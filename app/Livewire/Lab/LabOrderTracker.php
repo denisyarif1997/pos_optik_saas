@@ -87,6 +87,7 @@ class LabOrderTracker extends Component
         });
 
         session()->flash('success', 'Status lab order diperbarui.');
+        $this->dispatch('notify', type: 'success', message: 'Status lab order diperbarui.');
         $this->orderId = null;
         $this->newStatus = 'MENUNGGU';
         $this->promisedDate = null;

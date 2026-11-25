@@ -89,6 +89,7 @@ class Index extends Component
 
         $this->reset(['sale_id', 'sale_code', 'sale', 'valid_until', 'claim_notes']);
         session()->flash('success', 'Garansi diterbitkan.');
+        $this->dispatch('notify', type: 'success', message: 'Garansi diterbitkan.');
     }
 
     public function claim(int $id): void
@@ -97,6 +98,8 @@ class Index extends Component
         abort_unless($storeId, 403);
         $w = Warranty::forStore($storeId)->findOrFail($id);
         $w->update(['status' => 'claimed']);
+
+        $this->dispatch('notify', type: 'success', message: 'Garansi ditandai sebagai diklaim.');
     }
 
     public function render()

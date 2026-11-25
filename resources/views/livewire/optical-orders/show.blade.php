@@ -14,14 +14,32 @@
         
         <div class="space-y-2 text-sm">
             @foreach ($order->items as $it)
-                <div class="flex justify-between py-2 border-b border-slate-50 last:border-0"><span>{{ $it->description }} × {{ $it->qty }}</span><b>Rp {{ number_format($it->subtotal, 0, ',', '.') }}</b></div>
+                <div class="flex justify-between py-2 border-b border-slate-50 last:border-0">
+                    <span>
+                        {{ $it->description }} × {{ $it->qty }}
+                        @if ((float) $it->discount > 0)
+                            <span class="text-xs text-amber-600 ml-2">diskon -Rp {{ number_format($it->discount, 0, ',', '.') }}</span>
+                        @endif
+                        @if ((float) $it->ppn_amount > 0)
+                            <span class="text-xs text-emerald-700 ml-2">PPN +Rp {{ number_format($it->ppn_amount, 0, ',', '.') }}</span>
+                        @endif
+                    </span>
+                    <b>Rp {{ number_format($it->subtotal, 0, ',', '.') }}</b>
+                </div>
             @endforeach
         </div>
         <div class="rounded-lg bg-emerald-50/60 border border-emerald-100 p-4 text-sm">
             @if ($order->subtotal > 0)
                 <div class="flex justify-between text-slate-500"><span>Subtotal</span><span>Rp {{ number_format($order->subtotal, 0, ',', '.') }}</span></div>
-                @if ($order->discount_total > 0)
-                    <div class="flex justify-between text-slate-500"><span>Diskon ({{ number_format($order->discount_percent, 2, ',', '.') }}%)</span><span>- Rp {{ number_format($order->discount_total, 0, ',', '.') }}</span></div>
+                @php
+                    $itemDiscountTotal = (float) $order->items->sum('discount');
+                    $transactionDiscount = max(0, (float) $order->discount_total - $itemDiscountTotal);
+                @endphp
+                @if ($itemDiscountTotal > 0)
+                    <div class="flex justify-between text-slate-500"><span>Diskon item</span><span>- Rp {{ number_format($itemDiscountTotal, 0, ',', '.') }}</span></div>
+                @endif
+                @if ($transactionDiscount > 0)
+                    <div class="flex justify-between text-slate-500"><span>Diskon transaksi</span><span>- Rp {{ number_format($transactionDiscount, 0, ',', '.') }}</span></div>
                 @endif
                 @if ($order->ppn_amount > 0)
                     <div class="flex justify-between text-slate-500"><span>PPN ({{ number_format($order->ppn_rate, 0) }}%)</span><span>+ Rp {{ number_format($order->ppn_amount, 0, ',', '.') }}</span></div>

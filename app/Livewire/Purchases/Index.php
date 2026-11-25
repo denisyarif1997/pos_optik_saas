@@ -54,6 +54,7 @@ class Index extends Component
         ]);
 
         session()->flash('success', 'Pembelian '.$purchase->code.' tersimpan, stok bertambah.');
+        $this->dispatch('notify', type: 'success', message: 'Pembelian '.$purchase->code.' tersimpan, stok bertambah.');
         $this->reset(['cart', 'productSearch']);
     }
 

@@ -102,6 +102,33 @@ unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendB
                 </div>
 
                 <div>
+                    <label class="label">Akun Kas <span class="text-error">*</span></label>
+                    <select wire:model="cashAccountId" class="input <?php $__errorArgs = ['cashAccountId'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> border-error <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>">
+                        <option value="">-- Pilih Akun Kas --</option>
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $cashAccountOptions; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $id => $name): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoopIteration(); ?><?php endif; ?>
+                            <option value="<?php echo e($id); ?>"><?php echo e($name); ?></option>
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
+                    </select>
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['cashAccountId'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                        <p class="text-[11px] text-error mt-1 flex items-center gap-1"><?php echo e($message); ?></p>
+                    <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                </div>
+
+                <div>
                     <label class="label">Kategori <span class="text-error">*</span></label>
                     <select wire:model="category" class="input <?php $__errorArgs = ['category'];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
@@ -187,6 +214,7 @@ unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendB
                 <thead class="bg-slate-100 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                     <tr>
                         <th class="py-3 px-4 text-left">Deskripsi</th>
+                        <th class="py-3 px-4 text-left w-32">Akun Kas</th>
                         <th class="py-3 px-4 text-left w-32">Kategori</th>
                         <th class="py-3 px-4 text-left w-20">Tanggal</th>
                         <th class="py-3 px-4 text-right w-24">Nominal</th>
@@ -197,6 +225,7 @@ unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendB
                     <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__empty_1 = true; $__currentLoopData = $cashIns; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $c): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoopIteration(); ?><?php endif; ?>
                         <tr class="hover:bg-slate-50 transition-colors">
                             <td class="py-3 px-4 font-medium text-text-main"><?php echo e($c->description); ?></td>
+                            <td class="py-3 px-4 text-[11px] text-text-secondary"><?php echo e($c->cashAccount?->name ?? '-'); ?></td>
                             <td class="py-3 px-4 text-[11px] text-text-secondary"><?php echo e(ucfirst($c->category)); ?></td>
                             <td class="py-3 px-4 text-[11px] text-text-secondary"><?php echo e($c->received_at->format('d M Y')); ?></td>
                             <td class="py-3 px-4 text-[11px] font-semibold text-emerald-600 text-right">Rp <?php echo e(number_format($c->amount, 0, ',', '.')); ?></td>
@@ -209,7 +238,7 @@ unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendB
                         </tr>
                     <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                         <tr>
-                            <td colspan="5" class="py-8 text-center text-slate-400 text-sm">Belum ada kas masuk.</td>
+                            <td colspan="6" class="py-8 text-center text-slate-400 text-sm">Belum ada kas masuk.</td>
                         </tr>
                     <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </tbody>

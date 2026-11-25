@@ -88,6 +88,9 @@ class Form extends Component
             Product::create($data);
         }
 
+        session()->flash('success', $this->productId ? 'Produk diperbarui.' : 'Produk ditambahkan.');
+        $this->dispatch('notify', type: 'success', message: $this->productId ? 'Produk berhasil diperbarui.' : 'Produk berhasil ditambahkan.');
+
         $this->redirectRoute('products.index', navigate: true);
     }
 

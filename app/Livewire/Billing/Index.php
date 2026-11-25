@@ -34,6 +34,7 @@ class Index extends Component
         });
 
         session()->flash('success', 'Paket berhasil diperbarui.');
+        $this->dispatch('notify', type: 'success', message: 'Paket berhasil diperbarui.');
     }
 
     public function render()

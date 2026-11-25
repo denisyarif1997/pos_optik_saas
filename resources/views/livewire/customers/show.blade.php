@@ -1,89 +1,175 @@
-<div>
-    <x-page-header title="{{ $customer->name }}" description="Detail pelanggan, resep, dan transaksi">
-        <div class="flex items-center gap-2">
-            <a href="{{ route('customers.index') }}" wire:navigate class="btn-ghost px-4 py-2 text-sm">Kembali</a>
-            <a href="{{ route('customers.edit', $customer->id) }}" wire:navigate class="btn-primary px-4 py-2 text-sm">Ubah Data</a>
-            <a href="{{ route('prescriptions.create', $customer->id) }}" wire:navigate class="btn-primary px-4 py-2 text-sm">+ Resep Baru</a>
-        </div>
+<div class="space-y-6">
+    @php
+        $rp = fn ($n) => 'Rp ' . number_format((float) $n, 0, ',', '.');
+    @endphp
+
+    <x-page-header :title="$customer->name" description="Detail pelanggan, riwayat resep, dan transaksi">
+        <x-slot:actions>
+            <div class="flex flex-wrap items-center gap-2">
+                <a href="{{ route('customers.index') }}" wire:navigate class="btn-ghost px-3.5 py-2 text-sm">
+                    Kembali
+                </a>
+                <a href="{{ route('customers.edit', $customer->id) }}" wire:navigate class="btn-ghost border border-line px-3.5 py-2 text-sm">
+                    Ubah Data
+                </a>
+                <a href="{{ route('prescriptions.create', $customer->id) }}" wire:navigate class="btn-primary px-3.5 py-2 text-sm">
+                    + Resep Baru
+                </a>
+            </div>
+        </x-slot:actions>
     </x-page-header>
 
-    <!-- Info Pelanggan -->
-    <div class="card p-5">
-        <div class="flex items-center gap-4 mb-4">
-            <div class="w-12 h-12 rounded-full bg-accent text-white flex items-center justify-center text-lg font-bold">
-                {{ strtoupper(substr($customer->name, 0, 1)) }}
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {{-- Kolom Kiri: Profil & Transaksi --}}
+        <div class="lg:col-span-4 space-y-6">
+            {{-- Info Pelanggan --}}
+            <div class="card p-5">
+                <div class="flex items-center gap-3.5 pb-4 border-b border-line">
+                    <div class="w-11 h-11 rounded-lg bg-slate-900 text-white flex items-center justify-center text-base font-semibold shrink-0">
+                        {{ strtoupper(mb_substr($customer->name, 0, 1)) }}
+                    </div>
+                    <div class="min-w-0">
+                        <h2 class="text-base font-semibold text-text-main truncate">{{ $customer->name }}</h2>
+                        <p class="text-xs text-text-secondary tabular-nums mt-0.5 truncate">
+                            {{ $customer->phone ?: 'No. telepon belum tercatat' }}
+                        </p>
+                    </div>
+                </div>
+
+                <dl class="mt-4 space-y-3 text-xs">
+                    <div>
+                        <dt class="text-text-secondary">Tanggal Lahir</dt>
+                        <dd class="text-sm font-medium text-text-main mt-0.5 tabular-nums">
+                            {{ $customer->birth_date ? \Carbon\Carbon::parse($customer->birth_date)->translatedFormat('d M Y') : '-' }}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-text-secondary">Alamat</dt>
+                        <dd class="text-sm text-text-main mt-0.5 leading-relaxed">
+                            {{ $customer->address ?: '-' }}
+                        </dd>
+                    </div>
+                </dl>
             </div>
-            <div>
-                <div class="text-lg font-semibold text-text-main">{{ $customer->name }}</div>
-                <div class="text-[11px] text-text-secondary flex items-center gap-1">
-                    <span>📞</span> {{ $customer->phone ?? '-' }}
+
+            {{-- Transaksi Terakhir --}}
+            <div class="card p-5">
+                <div class="flex items-center justify-between pb-3 border-b border-line">
+                    <h2 class="text-sm font-semibold text-text-main">Transaksi Terakhir</h2>
+                    <a href="{{ route('sales.index') }}" wire:navigate class="text-xs font-medium text-accent hover:text-accent-hover">
+                        Semua
+                    </a>
+                </div>
+
+                <div class="divide-y divide-line">
+                    @forelse ($customer->sales as $s)
+                        <div class="flex items-center justify-between gap-3 py-2.5 first:pt-3 last:pb-0 text-sm">
+                            <div class="min-w-0">
+                                <a href="{{ route('sales.show', $s->id) }}" wire:navigate
+                                   class="font-medium text-text-main hover:text-accent truncate block">
+                                    {{ $s->code }}
+                                </a>
+                                @if ($s->created_at)
+                                    <span class="text-[11px] text-text-secondary tabular-nums block">
+                                        {{ $s->created_at->translatedFormat('d M Y') }}
+                                    </span>
+                                @endif
+                            </div>
+                            <span class="font-semibold text-text-main tabular-nums whitespace-nowrap">
+                                {{ $rp($s->total) }}
+                            </span>
+                        </div>
+                    @empty
+                        <p class="text-xs text-text-secondary py-6 text-center">Belum ada transaksi.</p>
+                    @endforelse
                 </div>
             </div>
         </div>
-        @if ($customer->address || $customer->birth_date)
-            <div class="grid sm:grid-cols-2 gap-4 text-sm">
-                @if ($customer->address)
-                    <div class="flex items-center gap-2 text-text-secondary">
-                        <span>📍</span> {{ $customer->address }}
-                    </div>
-                @endif
-                @if ($customer->birth_date)
-                    <div class="flex items-center gap-2 text-text-secondary">
-                        <span>🎂</span> {{ \Carbon\Carbon::parse($customer->birth_date)->format('d M Y') }}
-                    </div>
-                @endif
-            </div>
-        @endif
-    </div>
 
-    <!-- Riwayat Resep -->
-    <div class="card p-5">
-        <div class="flex justify-between items-center mb-4">
-            <h2 class="text-sm font-semibold text-text-main">Riwayat Resep</h2>
-            @if ($customer->prescriptions->count())
-                <a href="#" class="text-[11px] text-accent hover:text-accent-hover font-medium">Lihat semua</a>
-            @endif
-        </div>
-
-        @forelse ($customer->prescriptions as $r)
-            <div class="rounded-lg border border-line p-4 text-sm mb-3">
-                <div class="font-bold text-text-main">{{ $r->checked_at?->format('d M Y') ?? $r->created_at->format('d M Y') }}</div>
-                <div class="grid sm:grid-cols-2 gap-2 mt-2">
-                    <div class="bg-[#EFF6FF]/50 rounded-lg p-3 border border-[#EFF6FF]">
-                        <div class="text-[10px] text-accent font-semibold uppercase">OD (Kanan)</div>
-                        <div class="text-text-main">SPH {{ $r->od_sph ?? '-' }} • CYL {{ $r->od_cyl ?? '-' }} • AXIS {{ $r->od_axis ?? '-' }} • ADD {{ $r->od_add ?? '-' }}</div>
+        {{-- Kolom Kanan: Riwayat Resep --}}
+        <div class="lg:col-span-8">
+            <div class="card p-5">
+                <div class="flex items-center justify-between gap-4 pb-4 border-b border-line">
+                    <div>
+                        <h2 class="text-sm font-semibold text-text-main">Riwayat Resep</h2>
+                        <p class="text-xs text-text-secondary mt-0.5">Catatan ukuran lensa berdasarkan pemeriksaan</p>
                     </div>
-                    <div class="bg-[#EFF6FF]/50 rounded-lg p-3 border border-[#EFF6FF]">
-                        <div class="text-[10px] text-accent font-semibold uppercase">OS (Kiri)</div>
-                        <div class="text-text-main">SPH {{ $r->os_sph ?? '-' }} • CYL {{ $r->os_cyl ?? '-' }} • AXIS {{ $r->os_axis ?? '-' }} • ADD {{ $r->os_add ?? '-' }}</div>
-                    </div>
+                    @if ($customer->prescriptions->count() > 0)
+                        <span class="text-xs text-text-secondary tabular-nums whitespace-nowrap">
+                            {{ $customer->prescriptions->count() }} resep
+                        </span>
+                    @endif
                 </div>
-                <div class="text-[11px] text-text-secondary mt-2 flex items-center justify-between">
-                    <span>PD {{ $r->pd ?? '-' }} • {{ $r->notes ?? '-' }}</span>
-                    <a href="{{ route('print.prescription', $r->id) }}" target="_blank" class="text-accent font-bold">Cetak</a>
+
+                <div class="divide-y divide-line">
+                    @forelse ($customer->prescriptions as $r)
+                        @php
+                            $prescriptionDate = ($r->checked_at ?? $r->created_at)?->translatedFormat('d M Y') ?? '-';
+                        @endphp
+
+                        <article class="py-4 first:pt-4 last:pb-0">
+                            <div class="flex items-center justify-between gap-4 mb-3">
+                                <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                                    <span class="text-sm font-semibold text-text-main tabular-nums">
+                                        {{ $prescriptionDate }}
+                                    </span>
+                                    <span class="text-xs text-text-secondary tabular-nums">
+                                        PD: <strong class="font-medium text-text-main">{{ $r->pd ?? '-' }}</strong>
+                                    </span>
+                                </div>
+                                <a href="{{ route('print.prescription', $r->id) }}" target="_blank"
+                                   class="text-xs font-medium text-accent hover:text-accent-hover underline underline-offset-2 whitespace-nowrap">
+                                    Cetak Resep
+                                </a>
+                            </div>
+
+                            <div class="overflow-x-auto border border-line rounded-lg">
+                                <table class="w-full text-xs border-collapse tabular-nums">
+                                    <thead class="bg-slate-50 text-text-secondary border-b border-line">
+                                        <tr>
+                                            <th class="py-2 px-3 text-left font-medium w-28">Mata</th>
+                                            <th class="py-2 px-3 text-right font-medium">SPH</th>
+                                            <th class="py-2 px-3 text-right font-medium">CYL</th>
+                                            <th class="py-2 px-3 text-right font-medium">AXIS</th>
+                                            <th class="py-2 px-3 text-right font-medium">ADD</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-line text-text-main">
+                                        <tr>
+                                            <td class="py-2 px-3 font-medium whitespace-nowrap">OD (Kanan)</td>
+                                            <td class="py-2 px-3 text-right">{{ $r->od_sph ?? '-' }}</td>
+                                            <td class="py-2 px-3 text-right">{{ $r->od_cyl ?? '-' }}</td>
+                                            <td class="py-2 px-3 text-right">{{ $r->od_axis ?? '-' }}</td>
+                                            <td class="py-2 px-3 text-right">{{ $r->od_add ?? '-' }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="py-2 px-3 font-medium whitespace-nowrap">OS (Kiri)</td>
+                                            <td class="py-2 px-3 text-right">{{ $r->os_sph ?? '-' }}</td>
+                                            <td class="py-2 px-3 text-right">{{ $r->os_cyl ?? '-' }}</td>
+                                            <td class="py-2 px-3 text-right">{{ $r->os_axis ?? '-' }}</td>
+                                            <td class="py-2 px-3 text-right">{{ $r->os_add ?? '-' }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            @if ($r->notes)
+                                <p class="text-xs text-text-secondary mt-2.5 leading-relaxed">
+                                    <span class="font-medium text-text-main">Catatan:</span> {{ $r->notes }}
+                                </p>
+                            @endif
+                        </article>
+                    @empty
+                        <div class="py-10 text-center">
+                            <p class="text-sm text-text-secondary">Belum ada resep untuk pelanggan ini.</p>
+                            <a href="{{ route('prescriptions.create', $customer->id) }}" wire:navigate
+                               class="inline-block mt-3 text-xs font-medium text-accent hover:text-accent-hover underline underline-offset-2">
+                                Buat resep pertama
+                            </a>
+                        </div>
+                    @endforelse
                 </div>
             </div>
-        @empty
-            <p class="text-sm text-text-secondary text-center py-4">Belum ada resep untuk pelanggan ini.</p>
-        @endforelse
-    </div>
-
-    <!-- Transaksi Terakhir -->
-    <div class="card p-5">
-        <div class="flex justify-between items-center mb-4">
-            <h2 class="text-sm font-semibold text-text-main">Transaksi Terakhir</h2>
-            <a href="{{ route('sales.index') }}" class="text-[11px] text-accent hover:text-accent-hover font-medium">Lihat semua</a>
         </div>
-
-        @forelse ($customer->sales as $s)
-            <div class="flex justify-between text-sm py-2 border-b border-line last:border-0">
-                <span class="text-text-main">{{ $s->code }}</span>
-                <span class="text-right font-semibold text-text-main">Rp {{ number_format($s->total, 0, ',', '.') }}</span>
-            </div>
-        @empty
-            <p class="text-sm text-text-secondary text-center py-2">Belum ada transaksi.</p>
-        @endforelse
     </div>
 </div>
-
-

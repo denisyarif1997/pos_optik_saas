@@ -67,6 +67,9 @@ class Form extends Component
             $this->customerId = $customer->id;
         }
 
+        session()->flash('success', $this->customerId ? 'Pelanggan diperbarui.' : 'Pelanggan ditambahkan.');
+        $this->dispatch('notify', type: 'success', message: $this->customerId ? 'Pelanggan berhasil diperbarui.' : 'Pelanggan berhasil ditambahkan.');
+
         $this->redirectRoute('customers.show', ['id' => $this->customerId], navigate: true);
     }
 

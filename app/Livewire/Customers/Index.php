@@ -29,6 +29,7 @@ class Index extends Component
         $customer->update(['is_active' => false]);
 
         session()->flash('success', 'Pelanggan dinonaktifkan.');
+        $this->dispatch('notify', type: 'success', message: 'Pelanggan dinonaktifkan.');
     }
 
     public function render()

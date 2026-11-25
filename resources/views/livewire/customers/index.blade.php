@@ -1,8 +1,10 @@
 <div>
     <x-page-header title="Pelanggan" description="Kelola pelanggan & riwayat resep toko Anda">
+    <x-slot:actions>
         <a href="{{ route('customers.create') }}" wire:navigate class="btn-primary px-4 py-2 text-sm">+ Tambah Pelanggan</a>
+    </x-slot:actions>
     </x-page-header>
-
+    
     <x-search-input model="search" placeholder="Cari nama / nomor HP..." label="Cari pelanggan" />
 
     <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">

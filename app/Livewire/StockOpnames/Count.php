@@ -53,6 +53,7 @@ class Count extends Component
         });
 
         session()->flash('success', 'Stock opname selesai, stok disesuaikan.');
+        $this->dispatch('notify', type: 'success', message: 'Stock opname selesai, stok disesuaikan.');
         $this->redirectRoute('stock-opnames.index', navigate: true);
     }
 

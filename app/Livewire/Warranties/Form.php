@@ -76,6 +76,9 @@ class Form extends Component
             Warranty::create($data);
         }
 
+        session()->flash('success', $this->warrantyId ? 'Garansi diperbarui.' : 'Garansi ditambahkan.');
+        $this->dispatch('notify', type: 'success', message: $this->warrantyId ? 'Garansi berhasil diperbarui.' : 'Garansi berhasil ditambahkan.');
+
         $this->redirectRoute('warranties.index', navigate: true);
     }
 

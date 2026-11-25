@@ -70,6 +70,7 @@ class StoreSettings extends Component
         $this->logo = null;
 
         session()->flash('success', 'Pengaturan toko disimpan.');
+        $this->dispatch('notify', type: 'success', message: 'Pengaturan toko disimpan.');
     }
 
     public function removeLogo(): void
@@ -84,6 +85,7 @@ class StoreSettings extends Component
         }
 
         session()->flash('success', 'Logo dihapus.');
+        $this->dispatch('notify', type: 'success', message: 'Logo dihapus.');
     }
 
     protected function store(): ?Store
