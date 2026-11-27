@@ -4,13 +4,9 @@ namespace App\Livewire\Pos;
 
 use App\Models\CashAccount;
 use App\Models\Customer;
-use App\Models\LabOrder;
-use App\Models\OpticalOrder;
-use App\Models\OpticalOrderPayment;
 use App\Models\Prescription;
 use App\Models\Product;
 use App\Models\Sale;
-use App\Models\StockLensMatrix;
 use App\Services\CheckoutTotals;
 use App\Services\SaleService;
 use Illuminate\Support\Facades\DB;
@@ -31,10 +27,6 @@ class Cashier extends Component
     public array $cart = [];
 
     public ?int $prescription_id = null;
-
-    public string $lab_name = '';
-
-    public ?string $promised_date = null;
 
     public string $payment_method = 'cash';
 
@@ -79,7 +71,7 @@ class Cashier extends Component
             'sph' => null,
             'cyl' => null,
             'add_val' => 0.00,
-            'item_type' => $this->mode === 'optical' ? 'optical' : 'sale',
+            'item_type' => 'sale',
         ];
         $this->dispatchTotalsToBrowser();
     }
@@ -156,13 +148,6 @@ class Cashier extends Component
         }
 
         $this->dispatchTotalsToBrowser();
-    }
-
-    public function updatedMode(): void
-    {
-        foreach ($this->cart as $i => &$row) {
-            $row['item_type'] = $this->mode === 'optical' ? 'optical' : 'sale';
-        }
     }
 
     public function getTotalsProperty(): array
@@ -327,13 +312,7 @@ class Cashier extends Component
         abort_unless($storeId, 403);
 
         $this->validate([
-            'customer_id' => [
-                Rule::requiredIf($this->mode === 'optical'),
-                'nullable',
-                'integer',
-                Rule::exists('customers', 'id')->where('store_id', $storeId),
-            ],
-            'mode' => 'required|in:sale,optical',
+            'mode' => 'required|in:sale',
             'discount_amount' => 'required|numeric|min:0',
             'apply_ppn' => 'boolean',
             'pay_amount' => 'required|numeric|min:0',
@@ -396,154 +375,6 @@ class Cashier extends Component
 
             return;
         }
-
-        $this->authorize('create', OpticalOrder::class);
-
-        if ($this->prescription_id && $customer) {
-            Prescription::forStore($storeId)->where('customer_id', $customer->id)->findOrFail($this->prescription_id);
-        }
-
-        $nextNumber = (int) OpticalOrder::forStore($storeId)
-            ->whereDate('created_at', today())
-            ->orderBy('id', 'desc')
-            ->value('id');
-        $code = 'OPT-'.now()->format('Ymd').'-'.str_pad((string) ($nextNumber > 0 ? $nextNumber % 10000 : 0), 4, '0', STR_PAD_LEFT);
-        $discountAmount = (float) $this->discount_amount;
-        $paymentMethod = $this->payment_method;
-        $payAmount = $this->pay_amount;
-        $cashAccountId = $this->cash_account_id;
-
-        DB::transaction(function () use ($storeId, $customer, $code, $discountAmount, $paymentMethod, $payAmount, $cashAccountId) {
-            $snapshot = $this->prescription_id
-                ? Prescription::forStore($storeId)->find($this->prescription_id)->only(['od_sph', 'od_cyl', 'od_axis', 'od_add', 'os_sph', 'os_cyl', 'os_axis', 'os_add', 'pd'])
-                : [];
-
-            $lines = [];
-            foreach ($this->cart as $index => $row) {
-                $product = Product::forStore($storeId)->lockForUpdate()->findOrFail((int) $row['product_id']);
-                $qty = max(1, (int) $row['qty']);
-
-                $lines[$index] = [
-                    'product' => $product,
-                    'row' => $row,
-                    'qty' => $qty,
-                    'price' => (float) $product->sell_price,
-                    'gross' => (float) $product->sell_price * $qty,
-                    'discount' => max(0, (float) ($row['discount'] ?? 0)),
-                    'ppn_rate' => $this->itemPpnRate($row),
-                ];
-            }
-
-            $totals = CheckoutTotals::calculateForLines($lines, 0.0, $discountAmount);
-
-            $order = OpticalOrder::create([
-                'store_id' => $storeId,
-                'customer_id' => $customer ? $customer->id : null,
-                'prescription_id' => $this->prescription_id,
-                'order_number' => $code,
-                'code' => $code,
-                'lab_name' => $this->lab_name ?: null,
-                'prescription_snapshot' => $snapshot,
-                'ordered_at' => now()->toDateString(),
-                'promised_date' => $this->promised_date ?: null,
-                'subtotal' => $totals['subtotal'],
-                'discount_total' => $totals['discount_total'],
-                'discount_percent' => 0,
-                'discount_amount' => $totals['discount_amount'],
-                'ppn_rate' => $totals['ppn_rate'],
-                'ppn_amount' => $totals['ppn_amount'],
-                'total' => $totals['total'],
-                'dp_total' => 0,
-                'status' => 'DRAFT',
-            ]);
-
-            foreach ($lines as $index => $line) {
-                $lineTotals = $totals['lines'][$index];
-                $product = $line['product'];
-                $qty = $line['qty'];
-
-                $order->items()->create([
-                    'store_id' => $storeId,
-                    'optical_order_id' => $order->id,
-                    'product_id' => $product->id,
-                    'item_type' => $line['row']['item_type'] ?? 'optical',
-                    'description' => $product->name,
-                    'qty' => $qty,
-                    'price' => $line['price'],
-                    'discount' => $lineTotals['discount'],
-                    'ppn_rate' => $lineTotals['ppn_rate'],
-                    'ppn_amount' => $lineTotals['ppn_amount'],
-                    'subtotal' => $lineTotals['subtotal'],
-                ]);
-
-                if ($product->type === 'STOCK_LENS') {
-                    if ($this->prescription_id) {
-                        $this->deductStockLensMatrix($product->id, $snapshot);
-                    } else {
-                        $product->decrement('stock', $qty);
-                    }
-                } elseif ($product->type === 'FRAME') {
-                    $product->decrement('stock', $qty);
-                }
-            }
-
-            $initialPayment = min($payAmount, $totals['total']);
-            if ($initialPayment > 0) {
-                OpticalOrderPayment::create([
-                    'store_id' => $storeId,
-                    'optical_order_id' => $order->id,
-                    'received_by' => auth()->id(),
-                    'cash_account_id' => $cashAccountId,
-                    'paid_at' => now(),
-                    'method' => $paymentMethod,
-                    'amount' => $initialPayment,
-                ]);
-                $order->update(['dp_total' => $initialPayment]);
-            }
-
-            if ($this->lab_name) {
-                LabOrder::create([
-                    'store_id' => $storeId,
-                    'order_id' => $order->id,
-                    'lab_supplier_name' => $this->lab_name,
-                    'status' => 'MENUNGGU',
-                    'lab_cost' => 0,
-                    'expected_completion_date' => $this->promised_date ?: null,
-                ]);
-
-                $order->update(['status' => 'PESANAN']);
-            }
-        });
-
-        session()->flash('success', 'Pesanan optik '.$code.' dibuat.');
-        $this->dispatch('notify', type: 'success', message: 'Pesanan optik '.$code.' dibuat.');
-        $this->redirectRoute('optical-orders.show', ['id' => OpticalOrder::forStore($storeId)->where('order_number', $code)->first()->id], navigate: true);
-    }
-
-    protected function deductStockLensMatrix(int $productId, array $snapshot): void
-    {
-        $storeId = app('activeStore')->id();
-
-        foreach (['od', 'os'] as $eye) {
-            $sph = $snapshot[$eye.'_sph'] ?? null;
-            $cyl = $snapshot[$eye.'_cyl'] ?? null;
-            if ($sph === null || $cyl === null) {
-                continue;
-            }
-
-            $matrix = StockLensMatrix::forStore($storeId)
-                ->where('product_id', $productId)
-                ->where('sph', (float) $sph)
-                ->where('cyl', (float) $cyl)
-                ->where('add_val', (float) ($snapshot[$eye.'_add'] ?? 0.00))
-                ->where('stock_qty', '>', 0)
-                ->lockForUpdate()
-                ->first();
-
-            if ($matrix) {
-                $matrix->decrement('stock_qty', 1);
-            }
-        }
     }
 
     private function dispatchTotalsToBrowser(): void
@@ -557,7 +388,6 @@ class Cashier extends Component
         abort_unless($storeId, 403);
 
         $this->authorize('create', Sale::class);
-        $this->authorize('create', OpticalOrder::class);
 
         $search = trim($this->search);
 

@@ -32,6 +32,7 @@ class Form extends Component
 
     public ?float $os_add = null;
 
+    #[Validate('required|numeric|min:40|max:80')]
     public ?float $pd = null;
 
     #[Validate('nullable|string')]

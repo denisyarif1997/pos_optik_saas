@@ -83,11 +83,11 @@
         <!-- Toggle Mode Penjualan -->
         <div class="shrink-0 p-3 bg-canvas border-b border-line flex gap-2">
             <button wire:click="$set('mode', 'sale')" class="flex-1 py-2.5 rounded-lg font-semibold text-sm transition-all {{ $mode === 'sale' ? 'bg-emerald text-white shadow-md' : 'bg-surface text-text-secondary hover:bg-emerald-soft' }}">
-                Jual Langsung
+                Keranjang
             </button>
-            <button wire:click="$set('mode', 'optical')" class="flex-1 py-2.5 rounded-lg font-semibold text-sm transition-all {{ $mode === 'optical' ? 'bg-emerald text-white shadow-md' : 'bg-surface text-text-secondary hover:bg-emerald-soft' }}">
+            <!-- <button wire:click="$set('mode', 'optical')" class="flex-1 py-2.5 rounded-lg font-semibold text-sm transition-all {{ $mode === 'optical' ? 'bg-emerald text-white shadow-md' : 'bg-surface text-text-secondary hover:bg-emerald-soft' }}">
                 Pesanan Optik
-            </button>
+            </button> -->
         </div>
 
         <!-- KERANJANG: fleksibel, min 180px, scroll sendiri -->

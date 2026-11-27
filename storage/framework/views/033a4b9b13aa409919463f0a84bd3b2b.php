@@ -70,7 +70,7 @@
     </template>
 </div>
 
-<?php if (! $__env->hasRenderedOnce('eac870fb-90fd-4412-9cb1-bd24b5508882')): $__env->markAsRenderedOnce('eac870fb-90fd-4412-9cb1-bd24b5508882'); ?>
+<?php if (! $__env->hasRenderedOnce('434d3f12-7cc8-4580-a003-28f48899a1c4')): $__env->markAsRenderedOnce('434d3f12-7cc8-4580-a003-28f48899a1c4'); ?>
     <style>
         @keyframes ntf-shrink {
             from { transform: scaleX(1); }

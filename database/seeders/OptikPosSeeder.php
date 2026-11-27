@@ -3,9 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\Customer;
-use App\Models\LabOrder;
-use App\Models\OpticalOrder;
-use App\Models\OpticalOrderItem;
 use App\Models\Prescription;
 use App\Models\Product;
 use App\Models\StockLensMatrix;
@@ -51,22 +48,11 @@ class OptikPosSeeder extends Seeder
 
         $snapshot = fn ($p) => $p->only(['od_sph', 'od_cyl', 'od_axis', 'od_add', 'os_sph', 'os_cyl', 'os_axis', 'os_add', 'pd']);
 
-        $orders = [
-            OpticalOrder::create(['store_id' => $store->id, 'customer_id' => $customers[0]->id, 'prescription_id' => $prescriptions[0]->id, 'order_number' => 'SR-1-00001', 'code' => 'OO-2026-0001', 'lab_name' => 'Lab Jaya Optik', 'prescription_snapshot' => $snapshot($prescriptions[0]), 'ordered_at' => now()->subDays(10), 'estimated_done_at' => now()->subDays(3), 'promised_date' => now()->subDays(2), 'total' => 2250000, 'dp_total' => 750000, 'status' => 'DIPROSES', 'work_notes' => 'Pasang frame titanium dengan lensa RX progressive.']),
-            OpticalOrder::create(['store_id' => $store->id, 'customer_id' => $customers[1]->id, 'prescription_id' => $prescriptions[1]->id, 'order_number' => 'SR-1-00002', 'code' => 'OO-2026-0002', 'lab_name' => 'Lab Mandiri Kacamata', 'prescription_snapshot' => $snapshot($prescriptions[1]), 'ordered_at' => now()->subDays(5), 'estimated_done_at' => now()->addDays(5), 'promised_date' => now()->addDays(7), 'total' => 1350000, 'dp_total' => 500000, 'status' => 'PESANAN', 'work_notes' => 'Lensa stock minus, tunggu konfirmasi pelanggan.']),
-        ];
-
-        foreach ($orders as $index => $order) {
-            OpticalOrderItem::create(['store_id' => $store->id, 'optical_order_id' => $order->id, 'product_id' => $products[$index % 2]->id, 'item_type' => 'frame', 'description' => 'Frame untuk '.$order->customer->name, 'qty' => 1, 'price' => $products[$index % 2]->sell_price, 'subtotal' => $products[$index % 2]->sell_price]);
-        }
-
-        LabOrder::create(['store_id' => $store->id, 'order_id' => $orders[0]->id, 'lab_supplier_name' => 'Lab Jaya Optik', 'status' => 'DIPESAN', 'lab_cost' => 400000, 'expected_completion_date' => now()->addDays(4)]);
-        LabOrder::create(['store_id' => $store->id, 'order_id' => $orders[1]->id, 'lab_supplier_name' => 'Lab Mandiri Kacamata', 'status' => 'MENUNGGU', 'lab_cost' => 0, 'expected_completion_date' => null]);
     }
 
     protected function truncatePosTables(int $storeId): void
     {
-        $tables = ['lab_orders', 'optical_order_items', 'optical_orders', 'sale_items', 'sales', 'prescriptions', 'customers', 'stock_lens_matrices', 'products'];
+        $tables = ['sale_items', 'sales', 'prescriptions', 'customers', 'stock_lens_matrices', 'products'];
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
         foreach ($tables as $table) {
             DB::table($table)->where('store_id', $storeId)->delete();

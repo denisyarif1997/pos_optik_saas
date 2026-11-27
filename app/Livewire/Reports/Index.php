@@ -3,7 +3,6 @@
 namespace App\Livewire\Reports;
 
 use App\Models\Expense;
-use App\Models\OpticalOrder;
 use App\Models\Product;
 use App\Models\ReturnModel;
 use App\Models\Sale;
@@ -76,22 +75,11 @@ class Index extends Component
                 ->on('sale_items.product_id', '=', 'approved_item_returns.product_id'))
             ->sum(DB::raw("{$netItemQtyExpression} * products.cost_price"));
 
-        // Paid Optical Orders (treated as sales)
-        $opticalQ = OpticalOrder::forStore($storeId)
-            ->where('status', 'COMPLETED')
-            ->whereDate('taken_at', '>=', $this->from)
-            ->whereDate('taken_at', '<=', $this->to);
-
-        $opticalRevenue = (float) (clone $opticalQ)->sum('total');
-        $opticalCount = (clone $opticalQ)->count();
-        $opticalCollected = (float) (clone $opticalQ)->sum('dp_total');
-        $opticalReceivable = max(0, $opticalRevenue - $opticalCollected);
-
         // Combined metrics
-        $totalRevenue = $revenue + $opticalRevenue;
-        $totalCount = $saleCount + $opticalCount;
-        $totalCollected = $collected + $opticalCollected;
-        $totalReceivable = $receivable + $opticalReceivable;
+        $totalRevenue = $revenue;
+        $totalCount = $saleCount;
+        $totalCollected = $collected;
+        $totalReceivable = $receivable;
 
         $grossProfit = $totalRevenue - $cogs;
 
@@ -132,20 +120,9 @@ class Index extends Component
             ->groupBy('method')
             ->get();
 
-        $opticalPayments = DB::table('optical_order_payments')
-            ->where('store_id', $storeId)
-            ->whereDate('paid_at', '>=', $this->from)
-            ->whereDate('paid_at', '<=', $this->to)
-            ->select('method', DB::raw('SUM(amount) as total'))
-            ->groupBy('method')
-            ->get();
-
         $paymentMethodMap = [];
         foreach ($paymentMethods as $pm) {
             $paymentMethodMap[$pm->method] = (float) $pm->total;
-        }
-        foreach ($opticalPayments as $pm) {
-            $paymentMethodMap[$pm->method] = (float) ($paymentMethodMap[$pm->method] ?? 0) + (float) $pm->total;
         }
 
         // Daily trend (combined sales + optical orders)
@@ -158,26 +135,9 @@ class Index extends Component
             ->groupBy('date')
             ->get();
 
-        $dailyOptical = DB::table('optical_orders')
-            ->where('store_id', $storeId)
-            ->where('status', 'COMPLETED')
-            ->whereDate('taken_at', '>=', $this->from)
-            ->whereDate('taken_at', '<=', $this->to)
-            ->select(DB::raw('DATE(taken_at) as date'), DB::raw('SUM(total) as total'), DB::raw('COUNT(*) as count'))
-            ->groupBy('date')
-            ->get();
-
         $dailyMap = [];
         foreach ($dailySales as $d) {
-            $dailyMap[$d->date] = ['date' => $d->date, 'sale' => (float) $d->total, 'optical' => 0, 'count' => (int) $d->count];
-        }
-        foreach ($dailyOptical as $d) {
-            if (isset($dailyMap[$d->date])) {
-                $dailyMap[$d->date]['optical'] = (float) $d->total;
-                $dailyMap[$d->date]['count'] += (int) $d->count;
-            } else {
-                $dailyMap[$d->date] = ['date' => $d->date, 'sale' => 0, 'optical' => (float) $d->total, 'count' => (int) $d->count];
-            }
+            $dailyMap[$d->date] = ['date' => $d->date, 'sale' => (float) $d->total, 'optical' => 0.0, 'count' => (int) $d->count];
         }
         ksort($dailyMap);
         $dailyTrend = array_values($dailyMap);
@@ -222,42 +182,7 @@ class Index extends Component
                 ];
             });
 
-        // Aggregate cash-account names and receiver names per optical order
-        $opticalPaymentMeta = DB::table('optical_order_payments')
-            ->where('optical_order_payments.store_id', $storeId)
-            ->leftJoin('cash_accounts', 'cash_accounts.id', '=', 'optical_order_payments.cash_account_id')
-            ->leftJoin('users as recv', 'recv.id', '=', 'optical_order_payments.received_by')
-            ->select(
-                'optical_order_payments.optical_order_id',
-                DB::raw("GROUP_CONCAT(DISTINCT cash_accounts.name ORDER BY cash_accounts.name SEPARATOR ', ') as cash_names"),
-                DB::raw("GROUP_CONCAT(DISTINCT recv.name ORDER BY recv.name SEPARATOR ', ') as receiver_names"),
-            )
-            ->groupBy('optical_order_payments.optical_order_id')
-            ->get()
-            ->keyBy('optical_order_id');
-
-        $opticalTransactions = $opticalQ
-            ->with('customer')
-            ->orderByDesc('taken_at')
-            ->limit(50)
-            ->get()
-            ->map(function ($o) use ($opticalPaymentMeta): array {
-                $meta = $opticalPaymentMeta->get($o->id);
-
-                return [
-                    'type' => 'Optical',
-                    'code' => $o->code,
-                    'date' => $o->taken_at,
-                    'customer' => $o->customer?->name ?? 'Umum',
-                    'total' => (float) $o->total,
-                    'paid' => (float) $o->dp_total,
-                    'status' => $o->status,
-                    'cash_name' => $meta?->cash_names ?? '-',
-                    'processed_by' => $meta?->receiver_names ?? '-',
-                ];
-            });
-
-        $recentTransactions = $saleTransactions->concat($opticalTransactions)
+        $recentTransactions = $saleTransactions
             ->sortByDesc(fn ($t) => $t['date'])
             ->take(50)
             ->values();
@@ -284,9 +209,9 @@ class Index extends Component
             'recentTransactions' => $recentTransactions,
             'saleRevenue' => $revenue,
             'refundTotal' => $refundTotal,
-            'opticalRevenue' => $opticalRevenue,
             'saleCount' => $saleCount,
-            'opticalCount' => $opticalCount,
+            'opticalRevenue' => 0.0,
+            'opticalCount' => 0,
         ])->title('Laporan');
     }
 }

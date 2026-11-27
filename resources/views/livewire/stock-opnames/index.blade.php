@@ -10,6 +10,7 @@
             <table class="w-full text-sm border-collapse">
                 <thead class="bg-slate-100 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                     <tr>
+                        <th class="py-3 px-4 text-left w-10">No</th>
                         <th class="py-3 px-4 text-left w-32">Kode</th>
                         <th class="py-3 px-4 text-left w-32">Tanggal</th>
                         <th class="py-3 px-4 text-left w-20">Status</th>
@@ -20,6 +21,7 @@
                 <tbody class="divide-y divide-slate-100 bg-white">
                     @forelse ($opnames as $o)
                         <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="py-3 px-4 text-[11px] text-text-secondary tabular-nums">{{ $loop->iteration }}</td>
                             <td class="py-3 px-4 font-medium text-text-main">{{ $o->code }}</td>
                             <td class="py-3 px-4 text-[11px] text-text-secondary">{{ $o->conducted_at->format('d/m/Y') }}</td>
                             <td class="py-3 px-4">

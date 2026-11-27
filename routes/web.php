@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\PrintController;
-use App\Http\Controllers\PublicTrackingController;
 use App\Livewire\Auth\Login;
 use App\Livewire\Auth\Register;
 use App\Livewire\Billing\Index as BillingIndex;
@@ -18,12 +17,6 @@ use App\Livewire\Expenses\Index as ExpenseIndex;
 use App\Livewire\Inventory\Index as InventoryIndex;
 use App\Livewire\Inventory\LensGrid;
 use App\Livewire\Inventory\StockHistory;
-use App\Livewire\Lab\LabOrderTracker;
-use App\Livewire\Lab\QcChecklist;
-use App\Livewire\OpticalOrders\Form as OpticalOrderForm;
-use App\Livewire\OpticalOrders\Index as OpticalOrderIndex;
-use App\Livewire\OpticalOrders\Receivables as OpticalOrderReceivables;
-use App\Livewire\OpticalOrders\Show as OpticalOrderShow;
 use App\Livewire\Pos\Cashier;
 use App\Livewire\Prescriptions\Form as PrescriptionForm;
 use App\Livewire\Products\Adjust as ProductAdjust;
@@ -31,6 +24,8 @@ use App\Livewire\Products\Form as ProductForm;
 use App\Livewire\Products\Import as ProductImport;
 use App\Livewire\Products\Index as ProductIndex;
 use App\Livewire\Purchases\Index as PurchaseIndex;
+use App\Livewire\Reports\CashInReport;
+use App\Livewire\Reports\CashOutReport;
 use App\Livewire\Reports\Index as ReportIndex;
 use App\Livewire\Returns\Index as ReturnIndex;
 use App\Livewire\Sales\History as SaleHistory;
@@ -51,10 +46,6 @@ use Illuminate\Support\Facades\Auth;
 Route::get('/', function () {
     return auth()->check() ? redirect()->route('dashboard') : redirect()->route('login');
 });
-
-// Public order tracking (dapat diakses via link WhatsApp pelanggan)
-Route::get('/track', [PublicTrackingController::class, 'form'])->name('track.form');
-Route::get('/track/{code}', [PublicTrackingController::class, 'show'])->name('track.show');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', Login::class)->name('login');
@@ -112,13 +103,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/sales', SaleHistory::class)->name('sales.index');
         Route::get('/sales/{id}', SaleShow::class)->name('sales.show');
 
-        Route::get('/optical-orders', OpticalOrderIndex::class)->name('optical-orders.index');
-        Route::get('/optical-orders/create', OpticalOrderForm::class)->name('optical-orders.create');
-        Route::get('/optical-orders/{id}/edit', OpticalOrderForm::class)->name('optical-orders.edit');
-        Route::get('/optical-orders/receivables', OpticalOrderReceivables::class)->name('optical-orders.receivables')->middleware('store.role:owner,kasir,optician');
-        Route::get('/optical-orders/{id}', OpticalOrderShow::class)->name('optical-orders.show');
-
         Route::get('/reports', ReportIndex::class)->name('reports.index')->middleware('store.role:owner');
+
+        Route::get('/cash-reports/in', CashInReport::class)->name('cash-reports.in')->middleware('store.role:owner');
+        Route::get('/cash-reports/out', CashOutReport::class)->name('cash-reports.out')->middleware('store.role:owner');
 
         Route::get('/categories', CategoryIndex::class)->name('categories.index')->middleware('store.role:owner,stok');
         Route::get('/categories/create', Form::class)->name('categories.create')->middleware('store.role:owner,stok');
@@ -146,8 +134,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/inventory/stock-history', StockHistory::class)->name('inventory.stock-history')->middleware('store.role:owner,stok');
 
         Route::get('/pos/cashier', Cashier::class)->name('pos.cashier')->middleware('store.role:owner,kasir');
-        Route::get('/lab/tracker', LabOrderTracker::class)->name('lab.tracker')->middleware('store.role:owner,optician');
-        Route::get('/lab/qc', QcChecklist::class)->name('lab.qc')->middleware('store.role:owner,optician');
 
         Route::get('/settings/store', StoreSettings::class)->name('settings.store')->middleware('store.role:owner');
         Route::get('/settings/staff', StaffSettings::class)->name('settings.staff')->middleware('store.role:owner');
@@ -155,11 +141,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/cash-accounts', CashAccountIndex::class)->name('cash-accounts.index')->middleware('store.role:owner');
 
         Route::get('/print/sales/{id}', [PrintController::class, 'sale'])->name('print.sale');
-        Route::get('/print/optical-orders/{id}', [PrintController::class, 'opticalOrder'])->name('print.optical-order');
         Route::get('/print/prescriptions/{id}', [PrintController::class, 'prescription'])->name('print.prescription');
         Route::get('/export/sales', [ExportController::class, 'sales'])->name('export.sales')->middleware('store.role:owner');
         Route::get('/export/transactions', [ExportController::class, 'transactions'])->name('export.transactions')->middleware('store.role:owner');
         Route::get('/export/stock', [ExportController::class, 'stock'])->name('export.stock')->middleware('store.role:owner,stok');
+        Route::get('/export/stock-history', [ExportController::class, 'stockHistory'])->name('export.stock-history')->middleware('store.role:owner,stok');
         Route::get('/export/stock-opname', [ExportController::class, 'stockOpname'])->name('export.stock-opname')->middleware('store.role:owner,stok');
     });
 

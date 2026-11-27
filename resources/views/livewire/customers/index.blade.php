@@ -12,6 +12,7 @@
             <table class="w-full text-sm border-collapse">
                 <thead class="bg-slate-100 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                     <tr>
+                        <th class="py-3 px-4 text-left w-10">No</th>
                         <th class="py-3 px-4 text-left">Nama Pelanggan</th>
                         <th class="py-3 px-4 text-left w-32">Nomor HP</th>
                         <th class="py-3 px-4 text-left w-20">Status</th>
@@ -21,6 +22,7 @@
                 <tbody class="divide-y divide-slate-100 bg-white">
                     @forelse ($customers as $c)
                         <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="py-3 px-4 text-[11px] text-text-secondary tabular-nums">{{ ($customers->firstItem() ?? 0) + $loop->index }}</td>
                             <td class="py-3 px-4 font-medium text-text-main">{{ $c->name }}</td>
                             <td class="py-3 px-4 text-[11px] text-text-secondary">{{ $c->phone ?? '-' }}</td>
                             <td class="py-3 px-4">
@@ -46,7 +48,7 @@
     </div>
 
     <div class="mt-4">
-        {{ $customers->links() }}
+        <x-custom-pagination :paginator="$customers" />
     </div>
 </div>
 

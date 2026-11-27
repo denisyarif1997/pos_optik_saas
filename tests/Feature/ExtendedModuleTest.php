@@ -2,13 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Livewire\OpticalOrders\Form as OpticalOrderForm;
 use App\Livewire\Sales\History;
 use App\Livewire\Warranties\Index as WarrantyIndex;
 use App\Models\CashAccount;
 use App\Models\Customer;
 use App\Models\Expense;
-use App\Models\OpticalOrder;
 use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\ReturnModel;
@@ -88,23 +86,6 @@ class ExtendedModuleTest extends TestCase
         $this->assertNull(ReturnModel::forActiveStore()->where('id', $retur->id)->first());
         $this->assertNull(Warranty::forActiveStore()->where('id', $warranty->id)->first());
         $this->assertNull(Expense::forActiveStore()->where('id', $expense->id)->first());
-    }
-
-    public function test_optical_order_form_generates_a_code_when_saving(): void
-    {
-        $this->travelTo('2026-06-15 10:00:00');
-
-        [$user, $store] = $this->makeStoreWithOwner('Toko Optik', 'order-form@toko.test');
-        $customer = Customer::create(['store_id' => $store->id, 'name' => 'Pelanggan']);
-        $this->actingAs($user);
-
-        Livewire::test(OpticalOrderForm::class)
-            ->set('customer_id', $customer->id)
-            ->call('save')
-            ->assertHasNoErrors();
-
-        $order = OpticalOrder::forStore($store->id)->firstOrFail();
-        $this->assertSame('OPT-20260615-0001', $order->code);
     }
 
     public function test_warranty_index_saves_claim_notes(): void

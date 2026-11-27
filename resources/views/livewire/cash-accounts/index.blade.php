@@ -47,6 +47,7 @@
             <table class="w-full min-w-[680px] text-left text-sm">
                 <thead class="bg-canvas text-xs text-text-secondary">
                     <tr>
+                        <th class="px-5 py-3 font-semibold w-12">No</th>
                         <th class="px-5 py-3 font-semibold">Nama akun</th>
                         <th class="px-5 py-3 font-semibold">Jenis</th>
                         <th class="px-5 py-3 font-semibold">Status</th>
@@ -57,6 +58,7 @@
                 <tbody class="divide-y divide-line">
                     @forelse ($accounts as $account)
                         <tr wire:key="cash-account-{{ $account['id'] }}">
+                            <td class="px-5 py-3 text-xs text-text-secondary tabular-nums">{{ $loop->iteration }}</td>
                             <td class="px-5 py-3 font-medium text-text-main">{{ $account['name'] }}</td>
                             <td class="px-5 py-3 text-text-secondary">{{ $account['type'] === 'cash' ? 'Tunai' : 'Bank' }}</td>
                             <td class="px-5 py-3">

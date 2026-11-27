@@ -224,7 +224,27 @@
     </div>
 
     <div class="mt-4">
-        <?php echo e($sales->links()); ?>
+        <?php if (isset($component)) { $__componentOriginald2c13c0488e53309ee86563089ed1a17 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginald2c13c0488e53309ee86563089ed1a17 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.custom-pagination','data' => ['paginator' => $sales]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('custom-pagination'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['paginator' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($sales)]); ?>
+<?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
 
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginald2c13c0488e53309ee86563089ed1a17)): ?>
+<?php $attributes = $__attributesOriginald2c13c0488e53309ee86563089ed1a17; ?>
+<?php unset($__attributesOriginald2c13c0488e53309ee86563089ed1a17); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginald2c13c0488e53309ee86563089ed1a17)): ?>
+<?php $component = $__componentOriginald2c13c0488e53309ee86563089ed1a17; ?>
+<?php unset($__componentOriginald2c13c0488e53309ee86563089ed1a17); ?>
+<?php endif; ?>
     </div>
 </div><?php /**PATH C:\Webproject\Laravel\optik_app_saas\resources\views/livewire/sales/history.blade.php ENDPATH**/ ?>

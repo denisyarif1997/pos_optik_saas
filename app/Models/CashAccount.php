@@ -86,7 +86,6 @@ class CashAccount extends Model
         /** @var array<class-string<Model>, int> $sources model => direction of the money flow */
         $sources = [
             Payment::class => 1,
-            OpticalOrderPayment::class => 1,
             CashIn::class => 1,
             Expense::class => -1,
         ];
@@ -119,11 +118,6 @@ class CashAccount extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
-    }
-
-    public function opticalOrderPayments(): HasMany
-    {
-        return $this->hasMany(OpticalOrderPayment::class);
     }
 
     public function cashIns(): HasMany

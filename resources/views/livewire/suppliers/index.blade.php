@@ -13,6 +13,7 @@
                 <table class="w-full text-sm border-collapse">
                     <thead class="bg-slate-100 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                         <tr>
+                            <th class="py-3 px-4 text-left w-10">No</th>
                             <th class="py-3 px-4 text-left">Nama Supplier</th>
                             <th class="py-3 px-4 text-left w-48">Telepon</th>
                             <th class="py-3 px-4 text-left w-32">Status</th>
@@ -22,6 +23,7 @@
                     <tbody class="divide-y divide-slate-100 bg-white">
                         @forelse ($suppliers as $s)
                             <tr wire:key="supplier-{{ $s->id }}" class="hover:bg-slate-50 transition-colors">
+                                <td class="py-3 px-4 text-[11px] text-text-secondary tabular-nums">{{ ($suppliers->firstItem() ?? 0) + $loop->index }}</td>
                                 <td class="py-3 px-4 font-medium text-text-main truncate max-w-xs">{{ $s->name }}</td>
                                 <td class="py-3 px-4 text-[11px] text-text-secondary">{{ $s->phone ?? '-' }}</td>
                                 <td class="py-3 px-4">
@@ -48,6 +50,6 @@
     </div>
 
     <div class="mt-4">
-        {{ $suppliers->links() }}
+        <x-custom-pagination :paginator="$suppliers" />
     </div>
 </div>

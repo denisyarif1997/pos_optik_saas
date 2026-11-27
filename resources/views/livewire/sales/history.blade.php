@@ -151,6 +151,6 @@
     </div>
 
     <div class="mt-4">
-        {{ $sales->links() }}
+        <x-custom-pagination :paginator="$sales" />
     </div>
 </div>

@@ -1,364 +1,339 @@
-@php
-    $hour = now()->hour;
-    $greeting = match (true) {
-        $hour < 11 => 'Selamat pagi',
-        $hour < 15 => 'Selamat siang',
-        $hour < 18 => 'Selamat sore',
-        default => 'Selamat malam',
-    };
-@endphp
+<div class="space-y-5"
+     x-data="{
+         seriesVisible: {
+             lenses: true,
+             frames: true,
+             returns: true
+         },
+         hoveredIndex: null,
+         toggleSeries(key) {
+             this.seriesVisible[key] = !this.seriesVisible[key];
+         }
+     }">
 
-<div class="space-y-6">
-    <section class="relative isolate overflow-hidden rounded-3xl bg-linear-to-br from-emerald-dark via-emerald to-emerald-hover p-5 text-white shadow-lg shadow-emerald/15 sm:p-7">
-        <div aria-hidden="true" class="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-white/10 blur-3xl"></div>
-        <div aria-hidden="true" class="pointer-events-none absolute -bottom-28 right-1/3 h-56 w-56 rounded-full bg-emerald-soft/20 blur-3xl"></div>
+    <!-- ================= SECTION HEADER & COMPACT FILTERS ================= -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+            <h2 class="text-lg font-bold tracking-tight text-slate-900">Ringkasan Operasional Optik</h2>
+            <p class="text-xs text-slate-500 mt-0.5 tabular-nums">
+                Diperbarui: {{ now()->translatedFormat('d M Y, H:i') }} WIB &bull; {{ $store->name }}
+            </p>
+        </div>
 
-        <div class="relative grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
-            <div class="max-w-2xl">
-                <div class="mb-3 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-semibold tracking-wide text-white/90">
-                    <span class="h-1.5 w-1.5 rounded-full bg-emerald-200"></span>
-                    DASHBOARD TOKO
+        <div class="flex flex-wrap items-center gap-2">
+            <select wire:model.live="period" aria-label="Filter Periode"
+                    class="h-9 rounded-lg border border-[#e2e8f0] bg-white px-3 text-xs font-medium text-slate-700 focus:border-[#10b981] focus:outline-none">
+                <option value="7d">7 Hari Terakhir</option>
+                <option value="30d">30 Hari Terakhir</option>
+                <option value="month">Bulan Berjalan</option>
+                <option value="year">Tahun Ini</option>
+            </select>
+
+            <select wire:model.live="selectedStoreId" aria-label="Filter Cabang / Outlet"
+                    class="h-9 rounded-lg border border-[#e2e8f0] bg-white px-3 text-xs font-medium text-slate-700 focus:border-[#10b981] focus:outline-none">
+                @foreach ($stores as $st)
+                    <option value="{{ $st->id }}">{{ $st->name }}</option>
+                @endforeach
+            </select>
+
+            <a href="{{ route('pos.cashier') }}"
+               class="h-9 inline-flex items-center gap-1.5 rounded-lg bg-[#10b981] hover:bg-[#0d9488] px-3.5 text-xs font-semibold text-white transition-colors">
+                <x-icon name="plus" class="w-3.5 h-3.5" />
+                Transaksi Baru
+            </a>
+        </div>
+    </div>
+
+    <!-- ================= TOP KPI SUMMARY ROW (4 EQUAL-WIDTH CARDS) ================= -->
+    <section aria-label="Ringkasan KPI Optik" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+        <!-- KPI 1: Frame Ready vs Stok -->
+        <article class="bg-white rounded-[10px] border border-[#e2e8f0] p-4 flex flex-col justify-between">
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Frame Siap Jual</p>
+                    <p class="mt-2 text-2xl font-extrabold tracking-tight text-slate-900 tabular-nums">{{ number_format($readyFrameCount) }}</p>
                 </div>
-                <h2 class="text-2xl font-bold tracking-tight sm:text-3xl">{{ $greeting }}, {{ auth()->user()?->name ?? 'Pengguna' }}</h2>
-                <p class="mt-2 max-w-xl text-sm leading-relaxed text-white/80 sm:text-base">
-                    Pantau penjualan, pesanan, dan stok {{ $store->name }} dalam satu tampilan.
-                </p>
-
-                <div class="mt-5 flex flex-wrap gap-2.5">
-                    <a href="{{ route('pos.cashier') }}" class="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-emerald-dark shadow-sm transition hover:-translate-y-0.5 hover:bg-emerald-bg">
-                        <x-icon name="credit-card" class="h-4 w-4" />
-                        Transaksi Baru
-                    </a>
-                    <a href="{{ route('sales.index') }}" class="inline-flex items-center gap-2 rounded-xl border border-white/25 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/20">
-                        <x-icon name="history" class="h-4 w-4" />
-                        Riwayat Penjualan
-                    </a>
+                <span class="w-9 h-9 rounded-lg bg-emerald-50 text-[#10b981] flex items-center justify-center flex-shrink-0">
+                    <x-icon name="glasses" class="w-4 h-4" />
+                </span>
+            </div>
+            <div class="mt-3.5">
+                @php
+                    $frameShare = min(100, $readyFrameCount > 0 ? round(($readyFrameCount / max(1, $totalActiveProducts)) * 100) : 0);
+                @endphp
+                <div class="flex items-center justify-between text-[11px] text-slate-500 mb-1.5">
+                    <span>Frame siap jual vs pesanan lab</span>
+                    <span class="font-semibold text-[#0d9488] tabular-nums">{{ $frameShare }}% ready</span>
+                </div>
+                <div class="h-1.5 w-full rounded-full bg-amber-100 overflow-hidden">
+                    <div class="h-full rounded-full bg-[#10b981]" style="width: {{ $frameShare }}%"></div>
                 </div>
             </div>
+        </article>
 
-            <div class="relative min-w-0 rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm sm:p-5 lg:w-72">
-                <div class="flex items-start justify-between gap-4">
-                    <div>
-                        <p class="text-xs font-medium text-white/75">Penjualan hari ini</p>
-                        <p class="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">Rp {{ number_format($todaySales, 0, ',', '.') }}</p>
-                        <!-- <p class="mt-1 text-[11px] text-white/75">Nilai bersih setelah retur disetujui</p> -->
-                    </div>
-                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/15">
-                        <x-icon name="chart" class="h-5 w-5" />
-                    </div>
+        <!-- KPI 3: Ketersediaan Stok Lensa -->
+        <article class="bg-white rounded-[10px] border {{ $lowStock > 0 ? 'border-amber-300' : 'border-[#e2e8f0]' }} p-4 flex flex-col justify-between">
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Ketersediaan Stok Lensa</p>
+                    <p class="mt-2 text-2xl font-extrabold tracking-tight text-slate-900 tabular-nums">{{ number_format($totalLensStock) }}</p>
                 </div>
-                <div class="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-white/15 pt-3">
-                    <span class="text-xs text-white/80">Perbandingan penjualan harian</span>
-                    <span class="rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-semibold">
-                        {{ $growth >= 0 ? 'Naik' : 'Turun' }} {{ abs($growth) }}% dari kemarin
+                <span class="w-9 h-9 rounded-lg bg-amber-50 text-[#f59e0b] flex items-center justify-center flex-shrink-0">
+                    <x-icon name="layers" class="w-4 h-4" />
+                </span>
+            </div>
+            <div class="mt-3.5">
+                <div class="flex items-center justify-between text-[11px] text-slate-500 mb-1.5">
+                    <span>{{ $lowStock > 0 ? $lowStock . ' produk stok menipis' : 'Semua stok lensa aman' }}</span>
+                    <a href="{{ route('inventory.index') }}" class="font-semibold text-[#0d9488] hover:underline">Cek Stok</a>
+                </div>
+                <div class="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
+                    <div class="h-full rounded-full {{ $lowStock > 0 ? 'bg-[#f59e0b]' : 'bg-[#10b981]' }}" style="width: {{ $totalActiveProducts > 0 ? max(15, 100 - round(($lowStock / $totalActiveProducts) * 100)) : 100 }}%"></div>
+                </div>
+            </div>
+        </article>
+
+        <!-- KPI 4: Omzet Periode & Piutang -->
+        <article class="bg-white rounded-[10px] border border-[#e2e8f0] p-4 flex flex-col justify-between">
+            <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                    <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Omzet Penjualan</p>
+                    <p class="mt-2 text-2xl font-extrabold tracking-tight text-slate-900 tabular-nums truncate">Rp {{ number_format($periodRevenue, 0, ',', '.') }}</p>
+                </div>
+                <span class="w-9 h-9 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center flex-shrink-0">
+                    <x-icon name="chart" class="w-4 h-4" />
+                </span>
+            </div>
+            <div class="mt-3.5">
+                <div class="flex items-center justify-between text-[11px] text-slate-500 mb-1.5">
+                    <span>Hari ini: Rp {{ number_format($todaySales, 0, ',', '.') }}</span>
+                    <span class="font-semibold tabular-nums {{ $growth >= 0 ? 'text-[#10b981]' : 'text-[#ef4444]' }}">
+                        {{ $growth >= 0 ? '+' : '' }}{{ $growth }}%
                     </span>
                 </div>
-            </div>
-        </div>
-    </section>
-
-    <section aria-labelledby="quick-actions-title">
-        <div class="mb-3 flex items-end justify-between gap-3">
-            <div>
-                <h2 id="quick-actions-title" class="text-base font-bold text-text-main">Akses cepat</h2>
-                <p class="mt-0.5 text-xs text-text-secondary">Buka fitur yang sering digunakan</p>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <a href="{{ route('customers.create') }}" class="group flex items-center gap-3 rounded-2xl border border-line bg-surface p-3.5 shadow-card transition hover:-translate-y-0.5 hover:border-emerald-soft hover:shadow-hover">
-                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-bg text-emerald-dark transition group-hover:bg-emerald group-hover:text-white">
-                    <x-icon name="users" class="h-5 w-5" />
-                </span>
-                <span class="min-w-0">
-                    <span class="block truncate text-sm font-semibold text-text-main">Pelanggan</span>
-                    <span class="block text-[11px] text-text-secondary">Tambah data</span>
-                </span>
-            </a>
-            <a href="{{ route('products.create') }}" class="group flex items-center gap-3 rounded-2xl border border-line bg-surface p-3.5 shadow-card transition hover:-translate-y-0.5 hover:border-emerald-soft hover:shadow-hover">
-                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-700 transition group-hover:bg-sky-600 group-hover:text-white">
-                    <x-icon name="box" class="h-5 w-5" />
-                </span>
-                <span class="min-w-0">
-                    <span class="block truncate text-sm font-semibold text-text-main">Produk</span>
-                    <span class="block text-[11px] text-text-secondary">Kelola katalog</span>
-                </span>
-            </a>
-            <a href="{{ route('inventory.index') }}" class="group flex items-center gap-3 rounded-2xl border border-line bg-surface p-3.5 shadow-card transition hover:-translate-y-0.5 hover:border-emerald-soft hover:shadow-hover">
-                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-700 transition group-hover:bg-amber-500 group-hover:text-white">
-                    <x-icon name="layers" class="h-5 w-5" />
-                </span>
-                <span class="min-w-0">
-                    <span class="block truncate text-sm font-semibold text-text-main">Inventori</span>
-                    <span class="block text-[11px] text-text-secondary">Cek ketersediaan</span>
-                </span>
-            </a>
-            <a href="{{ route('optical-orders.index') }}" class="group flex items-center gap-3 rounded-2xl border border-line bg-surface p-3.5 shadow-card transition hover:-translate-y-0.5 hover:border-emerald-soft hover:shadow-hover">
-                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-700 transition group-hover:bg-violet-600 group-hover:text-white">
-                    <x-icon name="glasses" class="h-5 w-5" />
-                </span>
-                <span class="min-w-0">
-                    <span class="block truncate text-sm font-semibold text-text-main">Pesanan</span>
-                    <span class="block text-[11px] text-text-secondary">Layanan optik</span>
-                </span>
-            </a>
-        </div>
-    </section>
-
-    <section aria-label="Ringkasan operasional" class="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <article class="rounded-2xl border border-line bg-surface p-4 shadow-card transition hover:shadow-hover sm:p-5">
-            <div class="flex items-start justify-between gap-3">
-                <div>
-                    <p class="text-xs font-semibold text-text-secondary">Transaksi</p>
-                    <p class="mt-2 text-2xl font-bold tracking-tight text-text-main">{{ number_format($todayCount) }}</p>
+                <div class="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
+                    <div class="h-full rounded-full bg-sky-500" style="width: {{ $periodRevenue > 0 ? 78 : 10 }}%"></div>
                 </div>
-                <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-bg text-emerald-dark">
-                    <x-icon name="credit-card" class="h-5 w-5" />
-                </span>
             </div>
-            <p class="mt-3 text-[11px] text-text-secondary">Tercatat hari ini</p>
-        </article>
-
-        <article class="rounded-2xl border border-line bg-surface p-4 shadow-card transition hover:shadow-hover sm:p-5">
-            <div class="flex items-start justify-between gap-3">
-                <div>
-                    <p class="text-xs font-semibold text-text-secondary">Pesanan aktif</p>
-                    <p class="mt-2 text-2xl font-bold tracking-tight text-text-main">{{ number_format($openOrders) }}</p>
-                </div>
-                <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-sky-700">
-                    <x-icon name="glasses" class="h-5 w-5" />
-                </span>
-            </div>
-            <p class="mt-3 text-[11px] text-text-secondary">Belum selesai diproses</p>
-        </article>
-
-        <article class="rounded-2xl border {{ $lowStock > 0 ? 'border-amber-200 bg-amber-50/50' : 'border-line bg-surface' }} p-4 shadow-card transition hover:shadow-hover sm:p-5">
-            <div class="flex items-start justify-between gap-3">
-                <div>
-                    <p class="text-xs font-semibold text-text-secondary">Stok menipis</p>
-                    <p class="mt-2 text-2xl font-bold tracking-tight {{ $lowStock > 0 ? 'text-amber-800' : 'text-text-main' }}">{{ number_format($lowStock) }}</p>
-                </div>
-                <span class="flex h-10 w-10 items-center justify-center rounded-xl {{ $lowStock > 0 ? 'bg-amber-100 text-amber-700' : 'bg-amber-50 text-amber-700' }}">
-                    <x-icon name="box" class="h-5 w-5" />
-                </span>
-            </div>
-            <p class="mt-3 text-[11px] text-text-secondary">{{ $lowStock > 0 ? 'Produk perlu diperiksa' : 'Stok dalam kondisi aman' }}</p>
-        </article>
-
-        <article class="rounded-2xl border border-line bg-surface p-4 shadow-card transition hover:shadow-hover sm:p-5">
-            <div class="flex items-start justify-between gap-3">
-                <div>
-                    <p class="text-xs font-semibold text-text-secondary">Piutang penjualan</p>
-                    <p class="mt-2 text-xl font-bold tracking-tight text-text-main">Rp {{ number_format($unpaid, 0, ',', '.') }}</p>
-                </div>
-                <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-700">
-                    <x-icon name="wallet" class="h-5 w-5" />
-                </span>
-            </div>
-            <p class="mt-3 text-[11px] text-text-secondary">Transaksi belum lunas</p>
         </article>
     </section>
 
-    <section class="grid gap-4 xl:grid-cols-[1.4fr_0.8fr]">
-        <article class="rounded-2xl border border-line bg-surface p-4 shadow-card sm:p-5">
-            <div class="mb-5 flex flex-wrap items-start justify-between gap-3">
+    <!-- ================= BOTTOM MAIN ANALYTICS PANEL ================= -->
+    <section class="bg-white rounded-[10px] border border-[#e2e8f0] p-5">
+        <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-100">
+            <div class="flex items-center gap-2.5">
+                <span class="w-1 h-5 rounded-full bg-[#10b981]"></span>
                 <div>
-                    <h2 class="text-base font-bold text-text-main">Tren penjualan</h2>
-                    <p class="mt-1 text-xs text-text-secondary">Performa selama 7 hari terakhir</p>
+                    <h3 class="text-sm font-bold text-slate-900">Distribusi Penjualan &amp; Pesanan Optik</h3>
+                    <p class="text-[11px] text-slate-500">Perbandingan volume lensa, frame, pesanan lab, dan retur</p>
                 </div>
-                <a href="{{ route('sales.index') }}" class="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-emerald-dark transition hover:bg-emerald-bg">
-                    Riwayat
-                    <span aria-hidden="true">&rarr;</span>
-                </a>
             </div>
 
-            <div class="flex h-44 items-end gap-2 sm:h-52 sm:gap-4" role="img" aria-label="Grafik penjualan selama 7 hari terakhir">
-                @foreach ($weekly as $w)
+            <a href="{{ route('export.sales', ['from' => $rangeFrom, 'to' => $rangeTo]) }}"
+               title="Unduh Laporan CSV"
+               class="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-[#e2e8f0] bg-white hover:bg-slate-50 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors">
+                <x-icon name="download" class="w-3.5 h-3.5" />
+                <span class="hidden sm:inline">Export</span>
+            </a>
+        </div>
+
+        <!-- Interactive Color-Coded Legend Grouped Left & Right -->
+        <div class="flex flex-wrap items-center justify-between gap-3 py-3 text-xs">
+            <div class="flex flex-wrap items-center gap-4">
+                <button type="button" @click="toggleSeries('lenses')"
+                        :class="seriesVisible.lenses ? 'opacity-100' : 'opacity-40'"
+                        class="inline-flex items-center gap-1.5 font-medium text-slate-700 transition-opacity">
+                    <span class="w-2.5 h-2.5 rounded-full bg-[#3b82f6]"></span>
+                    Penjualan Lensa
+                </button>
+                <button type="button" @click="toggleSeries('frames')"
+                        :class="seriesVisible.frames ? 'opacity-100' : 'opacity-40'"
+                        class="inline-flex items-center gap-1.5 font-medium text-slate-700 transition-opacity">
+                    <span class="w-2.5 h-2.5 rounded-full bg-[#10b981]"></span>
+                    Frame &amp; Aksesori
+                </button>
+                <button type="button" @click="toggleSeries('orders')"
+                        :class="seriesVisible.orders ? 'opacity-100' : 'opacity-40'"
+                        class="inline-flex items-center gap-1.5 font-medium text-slate-700 transition-opacity">
+                    <span class="w-2.5 h-2.5 rounded-full bg-[#f59e0b]"></span>
+                    Pesanan Optik
+                </button>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-4">
+                <button type="button" @click="toggleSeries('returns')"
+                        :class="seriesVisible.returns ? 'opacity-100' : 'opacity-40'"
+                        class="inline-flex items-center gap-1.5 font-medium text-slate-700 transition-opacity">
+                    <span class="w-2.5 h-2.5 rounded-full bg-[#ef4444]"></span>
+                    Retur Produk
+                </button>
+                <span class="inline-flex items-center gap-1.5 text-slate-500">
+                    <span class="w-2.5 h-2.5 rounded-full bg-sky-300"></span>
+                    Piutang: <strong class="text-slate-700 tabular-nums">Rp {{ number_format($unpaid, 0, ',', '.') }}</strong>
+                </span>
+            </div>
+        </div>
+
+        <!-- Multi-Column Grouped Bar Chart -->
+        <div class="relative mt-2 pt-4">
+            <!-- Clean Horizontal Gridlines -->
+            <div class="relative h-56 flex items-end gap-2 sm:gap-3 border-b border-[#e2e8f0] pb-1">
+                <div aria-hidden="true" class="pointer-events-none absolute inset-0 flex flex-col justify-between">
+                    <div class="border-b border-dashed border-slate-200/80 w-full"></div>
+                    <div class="border-b border-dashed border-slate-200/80 w-full"></div>
+                    <div class="border-b border-dashed border-slate-200/80 w-full"></div>
+                    <div class="border-b border-dashed border-slate-200/80 w-full"></div>
+                    <div></div>
+                </div>
+
+                @foreach ($chartSeries as $idx => $item)
                     @php
-                        $barHeight = $maxWeekly > 0 ? max(4, round($w['value'] / $maxWeekly * 100)) : 4;
+                        $hLens = $maxChartVal > 0 ? max($item['lenses'] > 0 ? 8 : 2, round(($item['lenses'] / $maxChartVal) * 100)) : 2;
+                        $hFrame = $maxChartVal > 0 ? max($item['frames'] > 0 ? 8 : 2, round(($item['frames'] / $maxChartVal) * 100)) : 2;
+                        $hOrder = $maxChartVal > 0 ? max($item['orders'] > 0 ? 8 : 2, round(($item['orders'] / $maxChartVal) * 100)) : 2;
+                        $hRet = $maxChartVal > 0 ? max($item['returns'] > 0 ? 8 : 2, round(($item['returns'] / $maxChartVal) * 100)) : 2;
                     @endphp
-                    <div class="group flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-2" wire:key="weekly-sale-{{ $loop->index }}">
-                        <div class="flex h-full w-full max-w-12 items-end overflow-hidden rounded-t-lg bg-emerald-bg/70">
-                            <div
-                                class="w-full rounded-t-lg bg-emerald transition-colors group-hover:bg-emerald-dark"
-                                style="height: {{ $barHeight }}%"
-                                title="{{ $w['label'] }}: Rp {{ number_format($w['value'], 0, ',', '.') }}"
-                            ></div>
+                    <div wire:key="chart-col-{{ $idx }}"
+                         @mouseenter="hoveredIndex = {{ $idx }}"
+                         @mouseleave="hoveredIndex = null"
+                         class="relative z-10 flex-1 min-w-0 h-full flex flex-col items-center justify-end group">
+
+                        <!-- Hover Tooltip -->
+                        <div x-show="hoveredIndex === {{ $idx }}" x-cloak
+                             class="absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full bg-slate-900 text-white rounded-md px-2.5 py-1.5 text-[10px] whitespace-nowrap shadow-lg z-20 pointer-events-none tabular-nums">
+                            <div class="font-bold border-b border-white/15 pb-0.5 mb-1">{{ $item['label'] }}</div>
+                            <div>Lensa: {{ $item['lenses'] }} &bull; Frame: {{ $item['frames'] }}</div>
+                            <div>Order: {{ $item['orders'] }} &bull; Retur: {{ $item['returns'] }}</div>
                         </div>
-                        <span class="text-[10px] font-medium text-text-secondary">{{ $w['label'] }}</span>
+
+                        <div class="w-full h-full flex items-end justify-center gap-1 px-0.5 sm:px-1.5">
+                            <div x-show="seriesVisible.lenses"
+                                 class="w-2.5 sm:w-3.5 rounded-t bg-[#3b82f6] transition-all duration-200 group-hover:opacity-90"
+                                 style="height: {{ $hLens }}%"></div>
+                            <div x-show="seriesVisible.frames"
+                                 class="w-2.5 sm:w-3.5 rounded-t bg-[#10b981] transition-all duration-200 group-hover:opacity-90"
+                                 style="height: {{ $hFrame }}%"></div>
+                            <div x-show="seriesVisible.orders"
+                                 class="w-2.5 sm:w-3.5 rounded-t bg-[#f59e0b] transition-all duration-200 group-hover:opacity-90"
+                                 style="height: {{ $hOrder }}%"></div>
+                            <div x-show="seriesVisible.returns"
+                                 class="w-2.5 sm:w-3.5 rounded-t bg-[#ef4444] transition-all duration-200 group-hover:opacity-90"
+                                 style="height: {{ $hRet }}%"></div>
+                        </div>
                     </div>
                 @endforeach
             </div>
-            <div class="mt-4 flex items-center gap-2 border-t border-line-soft pt-3 text-[11px] text-text-secondary">
-                <span class="h-2 w-2 rounded-full bg-emerald"></span>
-                Nilai penjualan per hari
-            </div>
-        </article>
 
-        <article class="rounded-2xl border border-line bg-surface p-4 shadow-card sm:p-5">
-            <div class="mb-4 flex items-start justify-between gap-3">
-                <div>
-                    <h2 class="text-base font-bold text-text-main">Siap diambil</h2>
-                    <p class="mt-1 text-xs text-text-secondary">Pesanan menunggu pelanggan</p>
-                </div>
-                <span class="rounded-full bg-emerald-bg px-2.5 py-1 text-xs font-bold text-emerald-dark">{{ $readyOrders->count() }}</span>
-            </div>
-
-            <div class="divide-y divide-line-soft">
-                @forelse ($readyOrders as $o)
-                    <a href="{{ route('optical-orders.index') }}" wire:key="ready-order-{{ $o->id }}" class="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
-                        <span class="min-w-0">
-                            <span class="block truncate text-sm font-semibold text-text-main">{{ $o->code }}</span>
-                            <span class="mt-0.5 block truncate text-xs text-text-secondary">{{ $o->customer?->name ?? 'Pelanggan umum' }}</span>
-                        </span>
-                        <span class="status-badge success shrink-0">Siap</span>
-                    </a>
-                @empty
-                    <div class="rounded-xl bg-canvas px-4 py-6 text-center">
-                        <span class="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-surface text-text-muted">
-                            <x-icon name="check" class="h-5 w-5" />
-                        </span>
-                        <p class="mt-2 text-sm font-semibold text-text-main">Belum ada pesanan siap</p>
-                        <p class="mt-1 text-xs text-text-secondary">Pesanan siap diambil akan muncul di sini.</p>
+            <!-- Category Labels Below Axis -->
+            <div class="flex items-center gap-2 sm:gap-3 pt-2">
+                @foreach ($chartSeries as $idx => $item)
+                    <div class="flex-1 min-w-0 text-center text-[11px] font-medium text-slate-500 truncate tabular-nums">
+                        {{ $item['label'] }}
                     </div>
-                @endforelse
+                @endforeach
             </div>
-        </article>
-    </section>
-
-    <section class="grid gap-4 xl:grid-cols-2">
-        <article class="rounded-2xl border border-line bg-surface p-4 shadow-card sm:p-5">
-            <div class="mb-4 flex items-start justify-between gap-3">
-                <div>
-                    <h2 class="text-base font-bold text-text-main">Perlu restock</h2>
-                    <p class="mt-1 text-xs text-text-secondary">Produk yang mencapai batas stok minimum</p>
-                </div>
-                @if ($lowStock > 0)
-                    <a href="{{ route('inventory.index') }}" class="shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-emerald-dark transition hover:bg-emerald-bg">Lihat inventori &rarr;</a>
-                @endif
-            </div>
-
-            <div class="divide-y divide-line-soft">
-                @forelse ($lowStockItems as $p)
-                    <div wire:key="low-stock-{{ $p->id }}" class="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
-                        <div class="flex min-w-0 items-center gap-3">
-                            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-700">
-                                <x-icon name="box" class="h-4 w-4" />
-                            </span>
-                            <span class="min-w-0">
-                                <span class="block truncate text-sm font-semibold text-text-main">{{ $p->name }}</span>
-                                <span class="block text-[11px] text-text-secondary">Minimum {{ $p->min_stock }} unit</span>
-                            </span>
-                        </div>
-                        <span class="shrink-0 rounded-lg bg-amber-50 px-2.5 py-1.5 text-xs font-bold text-amber-800">{{ $p->stock }} tersisa</span>
-                    </div>
-                @empty
-                    <div class="rounded-xl bg-emerald-bg/60 px-4 py-5 text-center">
-                        <p class="text-sm font-semibold text-emerald-dark">Stok aman</p>
-                        <p class="mt-1 text-xs text-text-secondary">Semua produk berada di atas batas minimum.</p>
-                    </div>
-                @endforelse
-            </div>
-        </article>
-
-        <article class="rounded-2xl border border-line bg-surface p-4 shadow-card sm:p-5">
-            <div class="mb-4 flex items-start justify-between gap-3">
-                <div>
-                    <h2 class="text-base font-bold text-text-main">Pesanan aktif</h2>
-                    <p class="mt-1 text-xs text-text-secondary">Pesanan yang masih dalam proses</p>
-                </div>
-                @if ($openOrders > 0)
-                    <a href="{{ route('optical-orders.index') }}" class="shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-emerald-dark transition hover:bg-emerald-bg">Lihat semua &rarr;</a>
-                @endif
-            </div>
-
-            <div class="divide-y divide-line-soft">
-                @forelse ($pendingOrders as $o)
-                    @php
-                        $orderStatusClass = $o->status === 'siap_diambil'
-                            ? 'success'
-                            : (in_array($o->status, ['DIBATALKAN', 'dibatalkan'], true) ? 'error' : 'info');
-                    @endphp
-                    <a href="{{ route('optical-orders.index') }}" wire:key="pending-order-{{ $o->id }}" class="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
-                        <span class="min-w-0">
-                            <span class="block truncate text-sm font-semibold text-text-main">{{ $o->code }}</span>
-                            <span class="mt-0.5 block truncate text-xs text-text-secondary">{{ $o->customer?->name ?? 'Pelanggan umum' }}</span>
-                        </span>
-                        <span class="status-badge {{ $orderStatusClass }} shrink-0">{{ str_replace('_', ' ', $o->status) }}</span>
-                    </a>
-                @empty
-                    <div class="rounded-xl bg-canvas px-4 py-6 text-center">
-                        <span class="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-surface text-text-muted">
-                            <x-icon name="glasses" class="h-5 w-5" />
-                        </span>
-                        <p class="mt-2 text-sm font-semibold text-text-main">Tidak ada pesanan aktif</p>
-                        <p class="mt-1 text-xs text-text-secondary">Pesanan baru akan muncul di sini.</p>
-                    </div>
-                @endforelse
-            </div>
-        </article>
-    </section>
-
-    <section class="overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
-        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line-soft px-4 py-4 sm:px-5">
-            <div>
-                <h2 class="text-base font-bold text-text-main">Transaksi terbaru</h2>
-                <p class="mt-1 text-xs text-text-secondary">Aktivitas penjualan terkini di toko Anda</p>
-            </div>
-            <a href="{{ route('sales.index') }}" class="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-emerald-dark transition hover:bg-emerald-bg">
-                Semua transaksi
-                <span aria-hidden="true">&rarr;</span>
-            </a>
         </div>
+    </section>
 
-        <div class="overflow-x-auto">
-            <table class="w-full min-w-[620px] text-sm">
-                <thead class="bg-canvas/80">
-                    <tr class="text-left">
-                        <th scope="col" class="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-text-muted sm:px-5">Transaksi</th>
-                        <th scope="col" class="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-text-muted">Waktu</th>
-                        <th scope="col" class="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-text-muted">Total bersih</th>
-                        <th scope="col" class="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-text-muted">Status</th>
-                        <th scope="col" class="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-text-muted sm:px-5">Detail</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-line-soft">
-                    @forelse ($recentSales as $s)
-                        <tr wire:key="dashboard-sale-{{ $s->id }}" class="transition hover:bg-canvas/70">
-                            <td class="px-4 py-3.5 sm:px-5">
-                                <span class="block font-semibold text-text-main">{{ $s->code }}</span>
-                            </td>
-                            <td class="whitespace-nowrap px-4 py-3.5 text-xs text-text-secondary">{{ $s->sold_at->translatedFormat('d M, H:i') }}</td>
-                            <td class="whitespace-nowrap px-4 py-3.5 text-right font-semibold text-text-main">Rp {{ number_format($s->net_total, 0, ',', '.') }}</td>
-                            <td class="px-4 py-3.5">
-                                <div class="flex flex-wrap items-center gap-1.5">
-                                    <span class="status-badge {{ $s->payment_status === 'lunas' ? 'success' : ($s->payment_status === 'dp' ? 'warning' : 'error') }}">
-                                        {{ ucfirst(str_replace('_', ' ', $s->payment_status)) }}
-                                    </span>
-                                    @if ($s->return_status)
-                                        <span class="status-badge {{ $s->return_status === 'Diretur' ? 'error' : 'warning' }}">{{ $s->return_status }}</span>
-                                    @endif
-                                </div>
-                            </td>
-                            <td class="px-4 py-3.5 text-right sm:px-5">
-                                <a href="{{ route('sales.show', $s->id) }}" wire:navigate class="inline-flex items-center rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-text-secondary transition hover:border-emerald-soft hover:bg-emerald-bg hover:text-emerald-dark">
-                                    Buka
-                                </a>
-                            </td>
-                        </tr>
-                    @empty
+    <!-- ================= OPERATIONAL DETAIL PANELS ================= -->
+    <section class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <!-- Transaksi Terbaru (2 cols) -->
+        <article class="xl:col-span-2 bg-white rounded-[10px] border border-[#e2e8f0] overflow-hidden">
+            <div class="flex items-center justify-between gap-3 px-4 py-3.5 border-b border-[#e2e8f0]">
+                <div class="flex items-center gap-2">
+                    <span class="w-1 h-4 rounded-full bg-[#3b82f6]"></span>
+                    <h3 class="text-sm font-bold text-slate-900">Transaksi Terbaru</h3>
+                </div>
+                <a href="{{ route('sales.index') }}" class="text-xs font-semibold text-[#0d9488] hover:underline">
+                    Semua Transaksi &rarr;
+                </a>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs">
+                    <thead class="bg-[#f4f7f9] border-b border-[#e2e8f0] text-[10px] font-bold uppercase tracking-wider text-slate-500">
                         <tr>
-                            <td colspan="5" class="px-4 py-10 text-center">
-                                <span class="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-canvas text-text-muted">
-                                    <x-icon name="history" class="h-5 w-5" />
-                                </span>
-                                <p class="mt-3 text-sm font-semibold text-text-main">Belum ada transaksi</p>
-                                <p class="mt-1 text-xs text-text-secondary">Transaksi terbaru akan tampil di bagian ini.</p>
-                            </td>
+                            <th class="px-4 py-2.5 text-left">Nota</th>
+                            <th class="px-4 py-2.5 text-left">Waktu</th>
+                            <th class="px-4 py-2.5 text-right">Total Bersih</th>
+                            <th class="px-4 py-2.5 text-left">Status</th>
+                            <th class="px-4 py-2.5 text-right">Aksi</th>
                         </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        @forelse ($recentSales as $s)
+                            <tr wire:key="dashboard-sale-{{ $s->id }}" class="hover:bg-slate-50/70 transition-colors">
+                                <td class="px-4 py-2.5 font-semibold text-slate-900">{{ $s->code }}</td>
+                                <td class="px-4 py-2.5 text-slate-500 tabular-nums whitespace-nowrap">{{ $s->sold_at->translatedFormat('d M, H:i') }}</td>
+                                <td class="px-4 py-2.5 text-right font-semibold text-slate-900 tabular-nums whitespace-nowrap">Rp {{ number_format($s->net_total, 0, ',', '.') }}</td>
+                                <td class="px-4 py-2.5">
+                                    <div class="flex flex-wrap items-center gap-1">
+                                        <span class="status-badge {{ $s->payment_status === 'lunas' ? 'success' : ($s->payment_status === 'dp' ? 'warning' : 'error') }}">
+                                            {{ ucfirst(str_replace('_', ' ', $s->payment_status)) }}
+                                        </span>
+                                        @if ($s->return_status)
+                                            <span class="status-badge {{ $s->return_status === 'Diretur' ? 'error' : 'warning' }}">{{ $s->return_status }}</span>
+                                        @endif
+                                    </div>
+                                </td>
+                                <td class="px-4 py-2.5 text-right">
+                                    <a href="{{ route('sales.show', $s->id) }}" wire:navigate
+                                       class="inline-flex items-center px-2.5 py-1 rounded border border-[#e2e8f0] text-[11px] font-semibold text-slate-600 hover:bg-emerald-50 hover:text-[#0d9488] hover:border-emerald-200 transition-colors">
+                                        Buka
+                                    </a>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5" class="px-4 py-8 text-center text-slate-400">Belum ada transaksi tercatat.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </article>
+
+        <!-- Siap Diambil & Stok Menipis (1 col) -->
+        <div class="space-y-4">
+            <article class="bg-white rounded-[10px] border border-[#e2e8f0] p-4">
+                <div class="flex items-center justify-between gap-2 pb-3 border-b border-slate-100">
+                    <h3 class="text-sm font-bold text-slate-900">Pesanan Siap Diambil</h3>
+                    <span class="px-2 py-0.5 rounded-full bg-emerald-50 text-[#0d9488] text-[11px] font-bold tabular-nums">{{ $readyOrders->count() }}</span>
+                </div>
+                <div class="divide-y divide-slate-100 mt-2">
+                    @forelse ($readyOrders as $o)
+                        <a href="{{ route('optical-orders.index') }}" wire:key="ready-order-{{ $o->id }}" class="flex items-center justify-between gap-2 py-2.5 first:pt-1 last:pb-0">
+                            <div class="min-w-0">
+                                <span class="block text-xs font-semibold text-slate-800 truncate">{{ $o->code }}</span>
+                                <span class="block text-[11px] text-slate-500 truncate">{{ $o->customer?->name ?? 'Pelanggan umum' }}</span>
+                            </div>
+                            <span class="status-badge success">Siap</span>
+                        </a>
+                    @empty
+                        <p class="py-4 text-center text-xs text-slate-400">Belum ada pesanan siap diambil.</p>
                     @endforelse
-                </tbody>
-            </table>
+                </div>
+            </article>
+
+            <article class="bg-white rounded-[10px] border border-[#e2e8f0] p-4">
+                <div class="flex items-center justify-between gap-2 pb-3 border-b border-slate-100">
+                    <h3 class="text-sm font-bold text-slate-900">Stok Lensa/Produk Menipis</h3>
+                    <a href="{{ route('inventory.index') }}" class="text-[11px] font-semibold text-[#0d9488] hover:underline">Inventori &rarr;</a>
+                </div>
+                <div class="divide-y divide-slate-100 mt-2">
+                    @forelse ($lowStockItems as $p)
+                        <div wire:key="low-stock-{{ $p->id }}" class="flex items-center justify-between gap-2 py-2.5 first:pt-1 last:pb-0">
+                            <div class="min-w-0">
+                                <span class="block text-xs font-semibold text-slate-800 truncate">{{ $p->name }}</span>
+                                <span class="block text-[11px] text-slate-400">Min. {{ $p->min_stock }} unit</span>
+                            </div>
+                            <span class="px-2 py-0.5 rounded bg-amber-50 text-amber-700 text-[11px] font-bold tabular-nums">{{ $p->stock }} sisa</span>
+                        </div>
+                    @empty
+                        <p class="py-4 text-center text-xs text-emerald-700 font-medium">Semua stok berada di atas batas minimum.</p>
+                    @endforelse
+                </div>
+            </article>
         </div>
     </section>
 </div>

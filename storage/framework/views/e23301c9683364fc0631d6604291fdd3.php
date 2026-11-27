@@ -58,6 +58,10 @@ $paths = [
     'sidebar' => '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/>',
     'chevron-left' => '<path d="m15 18-6-6 6-6"/>',
     'chevron-right' => '<path d="m9 18 6-6-6-6"/>',
+    'chevron-down' => '<path d="m6 9 6 6 6-6"/>',
+    'bell' => '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+    'plus-circle' => '<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>',
+    'minus-circle' => '<circle cx="12" cy="12" r="9"/><path d="M8 12h8"/>',
 ];
 ?>
 

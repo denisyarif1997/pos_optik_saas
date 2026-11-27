@@ -2,12 +2,10 @@
 
 namespace Tests\Feature\Pos;
 
-use App\Livewire\OpticalOrders\Show as OpticalOrderShow;
 use App\Livewire\Pos\Cashier;
 use App\Livewire\Sales\Show as SaleShow;
 use App\Models\CashAccount;
 use App\Models\Customer;
-use App\Models\OpticalOrder;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\Store;
@@ -113,81 +111,6 @@ class CheckoutTotalsTest extends TestCase
         $this->assertDatabaseCount('sales', 0);
     }
 
-    public function test_optical_order_checkout_records_discount_tax_and_initial_payment(): void
-    {
-        [$user, $store] = $this->makeStoreWithOwner();
-        $this->actingAs($user);
-        $product = $this->makeProduct($store, 'Lensa Optik', 100000);
-        $customer = Customer::create([
-            'store_id' => $store->id,
-            'name' => 'Pelanggan Optik',
-            'phone' => '081234567890',
-            'is_active' => true,
-        ]);
-        $cashAccount = CashAccount::forStore($store->id)->where('code', 'kas-toko')->firstOrFail();
-
-        Livewire::test(Cashier::class)
-            ->set('mode', 'optical')
-            ->set('customer_id', $customer->id)
-            ->set('cart', [[
-                'product_id' => $product->id,
-                'qty' => 1,
-                'discount' => 0,
-                'item_type' => 'optical',
-            ]])
-            ->set('discount_amount', 10000)
-            ->set('apply_ppn', true)
-            ->set('cash_account_id', $cashAccount->id)
-            ->set('pay_amount', 50000)
-            ->call('checkout')
-            ->assertHasNoErrors();
-
-        $order = OpticalOrder::forStore($store->id)->firstOrFail();
-
-        $this->assertDatabaseHas('optical_orders', [
-            'id' => $order->id,
-            'subtotal' => 100000,
-            'discount_total' => 10000,
-            'discount_percent' => 0,
-            'discount_amount' => 10000,
-            'ppn_rate' => 11,
-            'ppn_amount' => 9900,
-            'total' => 99900,
-            'dp_total' => 50000,
-        ]);
-        $this->assertDatabaseHas('optical_order_payments', [
-            'optical_order_id' => $order->id,
-            'cash_account_id' => $cashAccount->id,
-            'amount' => 50000,
-        ]);
-
-        $this->get(route('print.optical-order', ['id' => $order->id]))
-            ->assertOk()
-            ->assertSee('Diskon')
-            ->assertSee('PPN')
-            ->assertSee('Kas Toko');
-    }
-
-    public function test_optical_order_checkout_requires_a_customer(): void
-    {
-        [$user, $store] = $this->makeStoreWithOwner();
-        $this->actingAs($user);
-        $product = $this->makeProduct($store, 'Produk Pesanan', 100000);
-
-        Livewire::test(Cashier::class)
-            ->set('mode', 'optical')
-            ->set('cart', [[
-                'product_id' => $product->id,
-                'qty' => 1,
-                'discount' => 0,
-                'item_type' => 'optical',
-            ]])
-            ->call('checkout')
-            ->assertHasErrors(['customer_id']);
-
-        $this->assertDatabaseCount('optical_orders', 0);
-    }
-
     public function test_later_sale_payment_records_the_selected_cash_account(): void
     {
         [$user, $store] = $this->makeStoreWithOwner();
@@ -233,79 +156,6 @@ class CheckoutTotalsTest extends TestCase
             ->assertForbidden();
 
         $this->assertDatabaseCount('payments', 0);
-    }
-
-    public function test_later_optical_order_payment_records_the_selected_cash_account(): void
-    {
-        [$user, $store] = $this->makeStoreWithOwner();
-        $this->actingAs($user);
-        $customer = Customer::create([
-            'store_id' => $store->id,
-            'name' => 'Pelanggan Cicilan',
-            'phone' => '081234567891',
-            'is_active' => true,
-        ]);
-        $order = OpticalOrder::create([
-            'store_id' => $store->id,
-            'customer_id' => $customer->id,
-            'order_number' => 'OPT-CICILAN-1',
-            'code' => 'OPT-CICILAN-1',
-            'ordered_at' => today(),
-            'subtotal' => 100000,
-            'total' => 100000,
-            'dp_total' => 0,
-            'status' => 'DRAFT',
-        ]);
-        $cashAccount = CashAccount::forStore($store->id)->where('code', 'kas-toko')->firstOrFail();
-
-        Livewire::test(OpticalOrderShow::class, ['id' => $order->id])
-            ->set('payAmount', '25000')
-            ->set('payMethod', 'cash')
-            ->set('cashAccountId', $cashAccount->id)
-            ->call('addPayment')
-            ->assertHasNoErrors();
-
-        $this->assertDatabaseHas('optical_order_payments', [
-            'optical_order_id' => $order->id,
-            'cash_account_id' => $cashAccount->id,
-            'amount' => 25000,
-        ]);
-        $this->assertSame(25000.0, (float) $order->fresh()->dp_total);
-    }
-
-    public function test_optician_cannot_record_an_optical_order_payment(): void
-    {
-        [$owner, $store] = $this->makeStoreWithOwner();
-        $this->actingAs($owner);
-        $customer = Customer::create([
-            'store_id' => $store->id,
-            'name' => 'Pelanggan Optician',
-            'phone' => '081234567892',
-            'is_active' => true,
-        ]);
-        $order = OpticalOrder::create([
-            'store_id' => $store->id,
-            'customer_id' => $customer->id,
-            'order_number' => 'OPT-OPTICIAN-1',
-            'code' => 'OPT-OPTICIAN-1',
-            'ordered_at' => today(),
-            'total' => 100000,
-            'dp_total' => 0,
-            'status' => 'DRAFT',
-        ]);
-        $cashAccount = CashAccount::forStore($store->id)->firstOrFail();
-        $optician = User::factory()->create();
-        $store->members()->attach($optician->id, ['role' => 'optician', 'is_active' => true]);
-        $this->actingAs($optician);
-
-        Livewire::test(OpticalOrderShow::class, ['id' => $order->id])
-            ->assertDontSee('Catat Pembayaran (Cicilan)')
-            ->set('payAmount', '25000')
-            ->set('cashAccountId', $cashAccount->id)
-            ->call('addPayment')
-            ->assertForbidden();
-
-        $this->assertDatabaseCount('optical_order_payments', 0);
     }
 
     /**

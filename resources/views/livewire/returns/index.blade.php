@@ -109,6 +109,7 @@
                 <table class="w-full text-sm border-collapse">
                     <thead class="bg-slate-100 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                         <tr>
+                            <th class="py-3 px-4 text-left w-10">No</th>
                             <th class="py-3 px-4 text-left w-40">Transaksi</th>
                             <th class="py-3 px-4 text-left">Pelanggan</th>
                             <th class="py-3 px-4 text-left">Produk</th>
@@ -128,6 +129,7 @@
                                 $badge = $badgeClass($r->status ?? 'approved');
                             @endphp
                             <tr wire:key="return-{{ $r->id }}" class="hover:bg-slate-50 transition-colors">
+                                <td class="py-3 px-4 text-[11px] text-text-secondary tabular-nums">{{ ($returns->firstItem() ?? 0) + $loop->index }}</td>
                                 <td class="py-3 px-4">
                                     <div class="font-medium text-text-main"><span class="text-text-secondary text-xs font-normal">No. Transaksi: </span>{{ $r->sale?->code ?? '-' }}</div>
                                     <p class="text-[11px] text-text-secondary">{{ $r->created_at->translatedFormat('d M Y, H:i') }}</p>
@@ -160,6 +162,6 @@
     </div>
 
     <div class="mt-4">
-        {{ $returns->links() }}
+        <x-custom-pagination :paginator="$returns" />
     </div>
 </div>

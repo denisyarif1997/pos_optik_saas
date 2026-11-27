@@ -5,7 +5,6 @@ namespace Tests\Feature\Pos;
 use App\Livewire\Pos\Cashier;
 use App\Models\CashAccount;
 use App\Models\Customer;
-use App\Models\OpticalOrder;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\Store;
@@ -201,63 +200,6 @@ class ItemDiscountPpnTest extends TestCase
             ->call('addToCart', $product->id);
 
         $this->assertSame(true, $component->get('cart.0.ppn'));
-    }
-
-    public function test_optical_order_checkout_stores_per_item_discount_and_ppn(): void
-    {
-        [$user, $store] = $this->makeStoreWithOwner();
-        $this->actingAs($user);
-        $taxed = $this->makeProduct($store, 'Lensa Kena PPN', 100000);
-        $untaxed = $this->makeProduct($store, 'Aksesoris Bebas PPN', 50000);
-        $customer = Customer::create([
-            'store_id' => $store->id,
-            'name' => 'Pelanggan Item',
-            'phone' => '081200000001',
-            'is_active' => true,
-        ]);
-        $cashAccount = CashAccount::forStore($store->id)->where('code', 'kas-toko')->firstOrFail();
-
-        Livewire::test(Cashier::class)
-            ->set('mode', 'optical')
-            ->set('customer_id', $customer->id)
-            ->set('cart', [
-                ['product_id' => $taxed->id, 'qty' => 1, 'discount' => 20000, 'ppn' => true, 'item_type' => 'optical'],
-                ['product_id' => $untaxed->id, 'qty' => 1, 'discount' => 0, 'ppn' => false, 'item_type' => 'optical'],
-            ])
-            ->assertDispatched('cashier-total-updated', total: 138800)
-            ->set('cash_account_id', $cashAccount->id)
-            ->set('pay_amount', 50000)
-            ->call('checkout')
-            ->assertHasNoErrors();
-
-        $order = OpticalOrder::forStore($store->id)->firstOrFail();
-
-        $this->assertDatabaseHas('optical_orders', [
-            'id' => $order->id,
-            'subtotal' => 150000,
-            'discount_total' => 20000,
-            'ppn_rate' => 11,
-            'ppn_amount' => 8800,
-            'total' => 138800,
-        ]);
-
-        $this->assertDatabaseHas('optical_order_items', [
-            'optical_order_id' => $order->id,
-            'product_id' => $taxed->id,
-            'discount' => 20000,
-            'ppn_rate' => 11,
-            'ppn_amount' => 8800,
-            'subtotal' => 80000,
-        ]);
-
-        $this->assertDatabaseHas('optical_order_items', [
-            'optical_order_id' => $order->id,
-            'product_id' => $untaxed->id,
-            'discount' => 0,
-            'ppn_rate' => 0,
-            'ppn_amount' => 0,
-            'subtotal' => 50000,
-        ]);
     }
 
     public function test_sale_detail_and_receipt_show_per_item_discount_and_ppn(): void

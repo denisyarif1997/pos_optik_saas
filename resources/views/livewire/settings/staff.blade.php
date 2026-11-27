@@ -28,6 +28,7 @@
                 <table class="w-full text-left text-sm border-collapse">
                     <thead class="bg-canvas border-b border-line text-[11px] font-bold text-text-secondary uppercase tracking-wider">
                         <tr>
+                            <th class="py-3 px-4 w-10">No</th>
                             <th class="py-3 px-4">Nama Staf</th>
                             <th class="py-3 px-4">Role / Peran</th>
                             <th class="py-3 px-4">Status</th>
@@ -37,6 +38,7 @@
                     <tbody class="divide-y divide-line bg-surface">
                         @forelse ($staff as $s)
                             <tr class="hover:bg-canvas/50 transition-colors">
+                                <td class="py-3.5 px-4 text-xs text-text-secondary tabular-nums">{{ $loop->iteration }}</td>
                                 <!-- Nama & Email -->
                                 <td class="py-3.5 px-4">
                                     <div class="flex items-center gap-3">

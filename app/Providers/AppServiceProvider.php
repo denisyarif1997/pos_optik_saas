@@ -5,8 +5,6 @@ namespace App\Providers;
 use App\Models\Category;
 use App\Models\Customer;
 use App\Models\Expense;
-use App\Models\LabOrder;
-use App\Models\OpticalOrder;
 use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\ReturnModel;
@@ -15,8 +13,6 @@ use App\Models\StockLensMatrix;
 use App\Policies\CategoryPolicy;
 use App\Policies\CustomerPolicy;
 use App\Policies\ExpensePolicy;
-use App\Policies\LabOrderPolicy;
-use App\Policies\OpticalOrderPolicy;
 use App\Policies\ProductPolicy;
 use App\Policies\PurchasePolicy;
 use App\Policies\ReturnPolicy;
@@ -45,11 +41,9 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Product::class, ProductPolicy::class);
         Gate::policy(Sale::class, SalePolicy::class);
         Gate::policy(Customer::class, CustomerPolicy::class);
-        Gate::policy(OpticalOrder::class, OpticalOrderPolicy::class);
         Gate::policy(Purchase::class, PurchasePolicy::class);
         Gate::policy(ReturnModel::class, ReturnPolicy::class);
         Gate::policy(StockLensMatrix::class, StockLensMatrixPolicy::class);
-        Gate::policy(LabOrder::class, LabOrderPolicy::class);
         Gate::policy(Expense::class, ExpensePolicy::class);
     }
 }

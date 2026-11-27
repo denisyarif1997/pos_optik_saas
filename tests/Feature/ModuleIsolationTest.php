@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\CashAccount;
 use App\Models\Customer;
-use App\Models\OpticalOrder;
 use App\Models\Product;
 use App\Models\Store;
 use App\Models\User;
@@ -48,14 +47,11 @@ class ModuleIsolationTest extends TestCase
         [$userB, $storeB] = $this->makeStoreWithOwner('Toko B', 'cb@toko.test');
 
         $customerB = Customer::create(['store_id' => $storeB->id, 'name' => 'Budi B']);
-        $orderB = OpticalOrder::create(['store_id' => $storeB->id, 'customer_id' => $customerB->id, 'code' => 'OPT-X', 'total' => 100000]);
 
         $this->actingAs($userA);
 
         $this->assertNull(Customer::forActiveStore()->where('id', $customerB->id)->first());
-        $this->assertNull(OpticalOrder::forActiveStore()->where('id', $orderB->id)->first());
         $this->assertFalse($userA->can('view', $customerB));
-        $this->assertFalse($userA->can('view', $orderB));
     }
 
     public function test_sale_creates_stock_movement_atomically(): void

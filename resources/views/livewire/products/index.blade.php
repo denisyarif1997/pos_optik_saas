@@ -70,7 +70,7 @@
     </div>
 
     <div class="mt-4">
-        {{ $products->links() }}
+        <x-custom-pagination :paginator="$products" />
     </div>
 </div>
 

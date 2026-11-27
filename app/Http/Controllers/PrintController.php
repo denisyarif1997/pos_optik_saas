@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\OpticalOrder;
 use App\Models\Prescription;
 use App\Models\Sale;
 use Illuminate\Http\Request;
@@ -34,20 +33,6 @@ class PrintController extends Controller
             'store' => app('activeStore')->get($request->user()),
             'returnsByItem' => $returnsByItem,
             'totalRefund' => $totalRefund,
-        ]);
-    }
-
-    public function opticalOrder(Request $request, int $id)
-    {
-        $storeId = app('activeStore')->id($request->user());
-        abort_unless($storeId, 403);
-
-        $order = OpticalOrder::forStore($storeId)->with(['customer', 'items', 'prescription', 'payments.cashAccount'])->findOrFail($id);
-        $request->user()->can('view', $order) || abort(403);
-
-        return response()->view('print.optical-order', [
-            'order' => $order,
-            'store' => app('activeStore')->get($request->user()),
         ]);
     }
 

@@ -213,6 +213,7 @@ unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendB
             <table class="w-full text-sm border-collapse">
                 <thead class="bg-slate-100 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                     <tr>
+                        <th class="py-3 px-4 text-left w-10">No</th>
                         <th class="py-3 px-4 text-left">Deskripsi</th>
                         <th class="py-3 px-4 text-left w-32">Akun Kas</th>
                         <th class="py-3 px-4 text-left w-32">Kategori</th>
@@ -224,6 +225,7 @@ unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendB
                 <tbody class="divide-y divide-slate-100 bg-white">
                     <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__empty_1 = true; $__currentLoopData = $cashIns; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $c): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoopIteration(); ?><?php endif; ?>
                         <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="py-3 px-4 text-[11px] text-text-secondary tabular-nums"><?php echo e($loop->iteration); ?></td>
                             <td class="py-3 px-4 font-medium text-text-main"><?php echo e($c->description); ?></td>
                             <td class="py-3 px-4 text-[11px] text-text-secondary"><?php echo e($c->cashAccount?->name ?? '-'); ?></td>
                             <td class="py-3 px-4 text-[11px] text-text-secondary"><?php echo e(ucfirst($c->category)); ?></td>

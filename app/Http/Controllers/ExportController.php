@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\OpticalOrder;
 use App\Models\Product;
 use App\Models\ReturnModel;
 use App\Models\Sale;
+use App\Models\StockMovement;
 use App\Models\StockOpname;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -34,15 +35,7 @@ class ExportController extends Controller
             ->groupBy('sale_id')
             ->pluck('refund_total', 'sale_id');
 
-        $optical = OpticalOrder::forStore($storeId)
-            ->with('customer')
-            ->where('status', 'COMPLETED')
-            ->whereDate('taken_at', '>=', $from)
-            ->whereDate('taken_at', '<=', $to)
-            ->orderBy('taken_at')
-            ->get();
-
-        return response()->streamDownload(function () use ($sales, $optical, $refundsBySale) {
+        return response()->streamDownload(function () use ($sales, $refundsBySale) {
             $out = fopen('php://output', 'w');
             fputcsv($out, ['Tanggal', 'Jenis', 'Kode', 'Pelanggan', 'Retur', 'Total', 'Dibayar', 'Status']);
             foreach ($sales as $s) {
@@ -59,18 +52,6 @@ class ExportController extends Controller
                     $total,
                     $paid,
                     $s->payment_status,
-                ]);
-            }
-            foreach ($optical as $o) {
-                fputcsv($out, [
-                    $o->taken_at?->format('Y-m-d H:i'),
-                    'Optical',
-                    $o->code,
-                    $o->customer?->name ?? 'Umum',
-                    0,
-                    $o->total,
-                    $o->dp_total,
-                    $o->status,
                 ]);
             }
             fclose($out);
@@ -114,30 +95,7 @@ class ExportController extends Controller
             ->get()
             ->keyBy('sale_id');
 
-        // Optical orders with payment meta
-        $optical = OpticalOrder::forStore($storeId)
-            ->with('customer')
-            ->where('status', 'COMPLETED')
-            ->whereDate('taken_at', '>=', $from)
-            ->whereDate('taken_at', '<=', $to)
-            ->orderBy('taken_at')
-            ->get();
-
-        $opticalPaymentMeta = DB::table('optical_order_payments')
-            ->where('optical_order_payments.store_id', $storeId)
-            ->whereIn('optical_order_payments.optical_order_id', $optical->modelKeys())
-            ->leftJoin('cash_accounts', 'cash_accounts.id', '=', 'optical_order_payments.cash_account_id')
-            ->leftJoin('users as recv', 'recv.id', '=', 'optical_order_payments.received_by')
-            ->select(
-                'optical_order_payments.optical_order_id',
-                DB::raw("GROUP_CONCAT(DISTINCT cash_accounts.name ORDER BY cash_accounts.name SEPARATOR ', ') as cash_names"),
-                DB::raw("GROUP_CONCAT(DISTINCT recv.name ORDER BY recv.name SEPARATOR ', ') as receiver_names"),
-            )
-            ->groupBy('optical_order_payments.optical_order_id')
-            ->get()
-            ->keyBy('optical_order_id');
-
-        return response()->streamDownload(function () use ($sales, $optical, $refundsBySale, $salePaymentMeta, $opticalPaymentMeta) {
+        return response()->streamDownload(function () use ($sales, $refundsBySale, $salePaymentMeta) {
             $out = fopen('php://output', 'w');
             fputcsv($out, ['Tanggal', 'Jenis', 'Kode', 'Pelanggan', 'Nama Kas', 'Diproses Oleh', 'Retur', 'Total', 'Dibayar', 'Status']);
 
@@ -161,23 +119,6 @@ class ExportController extends Controller
                 ]);
             }
 
-            foreach ($optical as $o) {
-                $meta = $opticalPaymentMeta->get($o->id);
-
-                fputcsv($out, [
-                    $o->taken_at?->format('Y-m-d H:i'),
-                    'Optical',
-                    $o->code,
-                    $o->customer?->name ?? 'Umum',
-                    $meta?->cash_names ?? '-',
-                    $meta?->receiver_names ?? '-',
-                    0,
-                    $o->total,
-                    $o->dp_total,
-                    $o->status,
-                ]);
-            }
-
             fclose($out);
         }, 'transaksi-'.$from.'-'.$to.'.csv', ['Content-Type' => 'text/csv']);
     }
@@ -197,6 +138,56 @@ class ExportController extends Controller
             }
             fclose($out);
         }, 'stok.csv', ['Content-Type' => 'text/csv']);
+    }
+
+    public function stockHistory(Request $request): StreamedResponse
+    {
+        $storeId = app('activeStore')->id($request->user());
+        abort_unless($storeId, 403);
+
+        $from = $request->query('from');
+        $to = $request->query('to');
+        $type = (string) $request->query('type', '');
+        $search = trim((string) $request->query('search', ''));
+        $productId = $request->query('product_id');
+
+        $rows = StockMovement::forStore($storeId)
+            ->with(['product:id,name,sku', 'creator:id,name'])
+            ->when($productId, fn ($q) => $q->where('product_id', $productId))
+            ->when($type !== '', fn ($q) => $q->where('type', $type))
+            ->when($from, fn ($q) => $q->where('created_at', '>=', Carbon::parse($from)->startOfDay()))
+            ->when($to, fn ($q) => $q->where('created_at', '<=', Carbon::parse($to)->endOfDay()))
+            ->when($search !== '', function ($q) use ($search): void {
+                $term = '%'.$search.'%';
+                $q->where(function ($sub) use ($term): void {
+                    $sub->where('notes', 'like', $term)
+                        ->orWhereHas('product', fn ($p) => $p->where('name', 'like', $term)->orWhere('sku', 'like', $term))
+                        ->orWhereHas('creator', fn ($u) => $u->where('name', 'like', $term));
+                });
+            })
+            ->latest('created_at')
+            ->latest('id')
+            ->get();
+
+        return response()->streamDownload(function () use ($rows): void {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['Waktu', 'SKU', 'Produk', 'Tipe', 'Referensi', 'Catatan', 'Stok Awal', 'Perubahan', 'Stok Akhir', 'Petugas']);
+            foreach ($rows as $m) {
+                fputcsv($out, [
+                    $m->created_at?->format('Y-m-d H:i:s'),
+                    $m->product?->sku ?? '-',
+                    $m->product?->name ?? 'Produk dihapus',
+                    $m->type,
+                    $m->referenceLabel().($m->reference_id ? ' #'.$m->reference_id : ''),
+                    $m->notes ?? '',
+                    $m->stock_before,
+                    $m->qty,
+                    $m->stock_after,
+                    $m->creator?->name ?? '-',
+                ]);
+            }
+            fclose($out);
+        }, 'histori-stok.csv', ['Content-Type' => 'text/csv']);
     }
 
     public function stockOpname(Request $request): StreamedResponse
